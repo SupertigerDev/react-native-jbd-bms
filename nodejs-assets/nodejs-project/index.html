@@ -1,0 +1,373 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JBD BMS</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        background-color: black;
+        color: white;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      header {
+        font-size: 28px;
+        margin-top: 30px;
+        margin-bottom: 20px;
+      }
+
+      .content {
+        max-width: 1000px;
+        width: 100%;
+        margin-left: 10px;
+        margin-right: 10px;
+      }
+
+      #batteryPercent {
+        font-size: 40px;
+        font-variant-numeric: tabular-nums;
+      }
+      .battery-container {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+      }
+      .battery-icon-container {
+        display: flex;
+        align-items: center;
+        width: 100px;
+        height: 50px;
+        border: solid 2px white;
+        border-radius: 6px;
+        position: relative;
+
+        #battery-fill {
+          background-color: white;
+          border-radius: 3px;
+          margin: 2px;
+          align-self: normal;
+        }
+        .battery-positive {
+          position: absolute;
+          right: -6px;
+          height: 30%;
+          width: 6px;
+          border-top-right-radius: 1px;
+          border-bottom-right-radius: 1px;
+          background-color: white;
+        }
+      }
+      #estimateTime {
+        margin-left: 130px;
+      }
+
+      #sections {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 30px;
+      }
+
+      .section {
+        display: flex;
+        background-color: rgba(255, 255, 255, 0.1);
+        align-items: center;
+        padding-left: 20px;
+        padding-right: 10px;
+        height: 50px;
+        flex-shrink: 0;
+
+        border-radius: 8px;
+        .section-title-description {
+          flex: 1;
+        }
+        .section-value {
+          flex-shrink: 0;
+          font-variant-numeric: tabular-nums;
+        }
+      }
+
+      #cellsSection {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+
+        display: flex;
+        flex-direction: column;
+
+        .cells-title {
+          margin-left: 20px;
+        }
+        .cells-title-description {
+          display: flex;
+          height: 50px;
+          align-items: center;
+        }
+        .cell-item {
+          height: 50px;
+          border-top: solid 1px black;
+          padding-left: 20px;
+          padding-right: 10px;
+          display: flex;
+          align-items: center;
+        }
+        .cell-title {
+          flex: 1;
+        }
+        .cells-volt-bal {
+          font-variant-numeric: tabular-nums;
+          text-align: end;
+        }
+      }
+
+      @keyframes fadeGreen {
+        0% {
+          color: green;
+        }
+        100% {
+          color: white;
+        }
+      }
+      @keyframes fadeRed {
+        0% {
+          color: red;
+        }
+        100% {
+          color: white;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content">
+      <header id="header">Fetching Battery...</header>
+
+      <div>
+        <div class="battery-container">
+          <div class="battery-icon-container">
+            <div id="battery-fill"></div>
+            <div class="battery-positive"></div>
+          </div>
+          <div id="batteryPercent">0%</div>
+        </div>
+        <div id="estimateTime"></div>
+      </div>
+
+      <div id="sections"></div>
+    </div>
+  </body>
+
+  <script>
+    const infoUrl = `/info`;
+
+    /** @returns {PromiseLike<{
+      name: string;
+      totalVolts: number;
+      current: number;
+      remainingCapacityAh: number;
+      nominalCapacityAh: number;
+      totalCycles: number;
+      remainingPercentSoc: number;
+      bmsNumberOfCells: number;
+      mosfetCharge: boolean;
+      mosfetDischarge: boolean;
+      balanceStatus: boolean[];
+      cellVolts: number[]
+    * } | {code: string}>} */
+    async function fetchBatteryInfo() {
+      try {
+        const response = await fetch(infoUrl);
+        const info = await response.json();
+        return info;
+      } catch {
+        return null;
+      }
+    }
+
+    const createOrUpdateSection = (id, title, description, value) => {
+      const exists = document.getElementById(`section-${id}`);
+      if (exists) {
+        document.getElementById(`section-title-${id}`).innerText = title;
+        document.getElementById(`section-description-${id}`).innerText =
+          description;
+
+        const oldNums = parseFloat(
+          document
+            .getElementById(`section-value-${id}`)
+            .innerText.match(/[\d\.]+/),
+        );
+        const newNums = parseFloat(value.match(/[\d\.]+/));
+
+        if (oldNums !== newNums) {
+          // make text go green temporary and fade back to white.
+          document.getElementById(`section-value-${id}`).style.animation =
+            (newNums > oldNums ? 'fadeGreen' : 'fadeRed') + ' 1.5s';
+          setTimeout(() => {
+            document.getElementById(`section-value-${id}`).style.animation = '';
+          }, 1500);
+        }
+        document.getElementById(`section-value-${id}`).innerText = value;
+        return;
+      }
+
+      const element = `
+        <div class="section" id="section-${id}">
+          <div class="section-title-description">
+            <div id="section-title-${id}">${title}</div>
+            <div id="section-description-${id}">${description}</div>
+            </div>
+          <div class="section-value" id="section-value-${id}">${value}</div>
+        </div>
+      `;
+
+      const sections = document.getElementById('sections');
+      sections.innerHTML += element;
+    };
+
+    function createCellsSection(balanceStatus, cellVolts) {
+      if (!balanceStatus || !cellVolts) return;
+      const existing = document.getElementById('cellsSection');
+
+      const element = `
+          <div id="cellsSection">
+            <div class="cells-title-description">
+              <div class="cells-title">Cells</div>
+              <div class="cells-title-description"></div>
+            </div>
+
+            ${balanceStatus
+              .map((v, i) => {
+                const id = `cells-volt-bal-${i}`;
+
+                let existingEl = document.getElementById(id);
+                const text = `${v ? '(Bal) ' : ' '}${cellVolts[i].toFixed(3)}V`;
+
+                if (existingEl) {
+                  const newNum = parseFloat(text.match(/[\d\.]+/));
+                  const oldNum = parseFloat(
+                    existingEl.innerText?.match(/[\d\.]+/),
+                  );
+
+                  if (oldNum !== newNum) {
+                    setTimeout(() => {
+                      existingEl = document.getElementById(id);
+                      existingEl.style.animation =
+                        (newNum > oldNum ? 'fadeGreen' : 'fadeRed') + ' 1.5s';
+                      setTimeout(() => {
+                        existingEl.style.animation = '';
+                      }, 1500);
+                    }, 0);
+                  }
+                }
+
+                return `
+              <div class="cell-item">
+                <div class="cell-title">${i + 1} </div>
+                <div class="cells-volt-bal" id="${id}">
+                  ${text}
+                </div>
+              </div>
+            `;
+              })
+              .join('')}
+
+          </div>
+        `;
+
+      if (existing) {
+        existing.outerHTML = element;
+        return;
+      }
+
+      const sections = document.getElementById('sections');
+      sections.innerHTML += element;
+    }
+
+    monitorStarted = false;
+    function fetchSchedule() {
+      fetchBatteryInfo().then(info => {
+        if (!info || info.code || !info.name) {
+          setTimeout(() => {
+            fetchSchedule();
+          }, 1500);
+
+          const header = document.getElementById('header');
+          if (!info || !info.name) {
+            header.innerText = 'Fetching Battery...';
+            return;
+          }
+          header.innerText = info.code;
+
+          return;
+        }
+
+        // use current capacity, current and nominal capacity to calculate remaining
+        let secondsRemaining =
+          (info.remainingCapacityAh / Math.abs(info.current)) * 3600;
+
+        const charging = info.current > 0;
+        const discharging = info.current < 0;
+        if (charging) {
+          secondsRemaining =
+            ((info.nominalCapacityAh - info.remainingCapacityAh) /
+              Math.abs(info.current)) *
+            3600;
+        }
+
+        let estTitle = '';
+        if (charging || discharging) {
+          estTitle = `Estimated ${
+            charging ? 'Charging' : 'Discharging'
+          }: ${new Date(secondsRemaining * 1000).toISOString().slice(11, 19)}`;
+        }
+        const estTime = document.getElementById('estimateTime');
+        estTime.innerText = !charging && !discharging ? '' : estTitle;
+
+        const header = document.getElementById('header');
+        header.innerText = `${info.name}`;
+
+        const batteryPercentText = `${info.remainingPercentSoc}%`;
+        const batteryPercent = document.getElementById('batteryPercent');
+        batteryPercent.innerText = batteryPercentText;
+
+        const batteryFill = document.getElementById('battery-fill');
+        batteryFill.style.width = batteryPercentText;
+
+        createOrUpdateSection(
+          'remaining-capacity',
+          'Remaining Capacity',
+          '',
+          info.remainingCapacityAh + 'A',
+        );
+
+        createOrUpdateSection(
+          't-voltage',
+          'Total Voltage',
+          '',
+          info.totalVolts + 'V',
+        );
+        createOrUpdateSection('current', 'Current', '', info.current + 'A');
+        const watts = info.current * info.totalVolts;
+        createOrUpdateSection(
+          'power',
+          'Power',
+          '',
+          `${watts === 0 ? 0 : watts.toFixed(2)}W`,
+        );
+
+        createCellsSection(info.balanceStatus, info.cellVolts);
+
+        setTimeout(() => {
+          fetchSchedule();
+        }, 1500);
+      });
+    }
+    fetchSchedule();
+  </script>
+</html>

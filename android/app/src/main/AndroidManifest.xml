@@ -2,6 +2,21 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+
+    <!-- Needed if your app search for Bluetooth devices. -->
+     <!--
+      If your app doesn't use Bluetooth scan results to derive physical location information,
+      you can strongly assert that your app doesn't derive physical location.
+    -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+                     android:usesPermissionFlags="neverForLocation" />
+    <!-- Needed if you want to interact with a BLE device. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- If you need communication while the app is not in the foreground you need the ACCESS_BACKGROUND_LOCATION permission. -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+
     <application
       android:name=".MainApplication"
       android:label="@string/app_name"

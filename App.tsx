@@ -1,117 +1,86 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, {useEffect} from 'react';
+import {Linking, StyleSheet, Text, View} from 'react-native';
+import DeviceList from './src/pages/DeviceList';
+import {bms, BMSProvider, useBMS} from './src/BMSContext';
+import nodejs from 'nodejs-mobile-react-native';
+import WebView from 'react-native-webview';
+import {NetworkInfo} from 'react-native-network-info';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+nodejs.start('main.js');
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const sendResponse = (id: number, json: any, code = 200) => {
+  nodejs.channel.send(
+    JSON.stringify({
+      id: id,
+      status: code,
+      json,
+    }),
+  );
+};
+nodejs.channel.addListener('message', async msg => {
+  const json = JSON.parse(msg);
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+  if (json.path === '/info') {
+    if (!bms.selectedPeripheral) {
+      sendResponse(json.id, {code: 'DEVICE_NOT_SELECTED'}, 400);
+      return;
+    }
+    const info = await bms.fetchBatteryInfo();
+    const cellVolts = await bms.fetchCellVoltages();
+    sendResponse(json.id, {...info, cellVolts});
+  }
+});
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+function App() {
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
+    <BMSProvider>
+      <View style={styles.container}>
+        <PageHandler />
+      </View>
+    </BMSProvider>
   );
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+const PageHandler = () => {
+  const {selectedPeripheral} = useBMS();
+  const [localIp, setLocalIp] = React.useState('');
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+  useEffect(() => {
+    NetworkInfo.getIPV4Address().then(ip => {
+      setLocalIp(ip || '');
+    });
+  }, []);
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+    <>
+      {!selectedPeripheral && <DeviceList />}
+      {selectedPeripheral && (
+        <View style={{flex: 1, backgroundColor: 'black'}}>
+          <Text
+            style={{textAlign: 'center', color: '#4c93ff'}}
+            onPress={() => Linking.openURL(`http://${localIp}:12345`)}>
+            Hosting on {localIp}:12345
+          </Text>
+          <WebView
+            bounces={false}
+            style={{backgroundColor: 'black', width: '100%', height: '100%'}}
+            overScrollMode="never"
+            setBuiltInZoomControls={false}
+            textInteractionEnabled={false}
+            textZoom={100}
+            source={{uri: 'http://localhost:12345'}}
+            webviewDebuggingEnabled
+          />
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      )}
+    </>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+  container: {
+    backgroundColor: 'black',
+    flex: 1,
   },
 });
 
