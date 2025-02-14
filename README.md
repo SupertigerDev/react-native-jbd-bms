@@ -7,8 +7,8 @@ This app also hosts a local web server on port `12345` where you can access the 
 ### Mobile Screenshots
 
 <p float="left">
-  <img src="./mobile1.jpg" style="max-height: 500px"></img>
-  <img src="./mobile2.jpg" style="max-height: 500px"></img>
+  <img src="./mobile1.jpg" style="height: 500px"></img>
+  <img src="./mobile2.jpg" style="height: 500px"></img>
 </p>
 
 ### Desktop Screenshots
