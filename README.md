@@ -1,5 +1,5 @@
 # React JBD BMS
-React JBD BMS is a React Native app that allows you to connect to a JBD BMS and view its battery information.
+React JBD BMS is a React Native app that allows you to connect to a JBD BMS using Bluetooth and view its battery information.
 
 This app also hosts a local web server on port `12345` where you can access the battery information from any device eg your phone.
 ### Mobile Screenshots
