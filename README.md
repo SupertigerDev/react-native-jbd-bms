@@ -18,4 +18,5 @@ This app also hosts a local web server on port `12345` where you can access the 
 ## Resources
 
 https://github.com/neilsheps/overkill-xiaoxiang-jbd-bms-ble-reader/blob/main/src/main.cpp  
-https://socket.dev/npm/package/jbd-overkill-bms-plugin/files/0.0.6/index.js
+https://socket.dev/npm/package/jbd-overkill-bms-plugin/files/0.0.6/index.js  
+https://jiabaida-bms.com/pages/download-files
