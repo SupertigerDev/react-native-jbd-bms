@@ -62,6 +62,7 @@ const PageHandler = () => {
             Hosting on {localIp}:12345
           </Text>
           <WebView
+          clear
             bounces={false}
             style={{backgroundColor: 'black', width: '100%', height: '100%'}}
             overScrollMode="never"
