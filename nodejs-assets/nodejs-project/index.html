@@ -196,7 +196,9 @@
       labels = [];
       data = {
         capacity: [],
+        voltage: [],
         current: [],
+        cellDiff: [],
         cells: [],
       };
       onAdd = null;
@@ -234,6 +236,13 @@
               this.data.current[this.data.current.length - 1],
             );
 
+            this.data.voltage.push(
+              this.data.voltage[this.data.voltage.length - 1],
+            );
+            this.data.cellDiff.push(
+              this.data.cellDiff[this.data.cellDiff.length - 1],
+            );
+
             this.data.cells.forEach(cell => {
               cell.push(cell[cell.length - 1]);
             });
@@ -248,6 +257,8 @@
 
         this.data.capacity.push(value.capacity);
         this.data.current.push(value.current);
+        this.data.voltage.push(value.voltage);
+        this.data.cellDiff.push(value.cellDiff);
 
         value.cellVolts.forEach((v, i) => {
           this.data.cells[i] = [...(this.data.cells[i] || []), v];
@@ -480,10 +491,21 @@
           return;
         }
 
+        const indicesOfHigh = getIndicesOfLargestNumbers(info.cellVolts);
+        const indicesOfLow = getIndicesOfSmallestNumbers(info.cellVolts);
+        let highVoltageIndex =
+          indicesOfHigh.length === 1 ? indicesOfHigh[0] : -1;
+        let lowVoltageIndex = indicesOfLow.length === 1 ? indicesOfLow[0] : -1;
+        const voltageDiff = Math.abs(
+          info.cellVolts[indicesOfHigh[0]] - info.cellVolts[indicesOfLow[0]],
+        ).toFixed(3);
+
         plotter.addValues({
           capacity: info.remainingCapacityAh,
           current: info.current,
+          cellDiff: voltageDiff,
           cellVolts: info.cellVolts,
+          voltage: info.totalVolts,
         });
 
         // use current capacity, current and nominal capacity to calculate remaining
@@ -578,7 +600,7 @@
         labels: plotter.labels,
         datasets: [
           {
-            label: 'Capacity',
+            label: 'Cap',
             data: plotter.data.capacity,
             fill: false,
             pointBorderColor: 'rgba(0, 0, 0, 0)',
@@ -587,7 +609,26 @@
             tension: 0.1,
           },
           {
-            label: 'Current',
+            label: 'Volts',
+            data: plotter.data.capacity,
+            fill: false,
+            pointBorderColor: 'rgba(0, 0, 0, 0)',
+            pointBackgroundColor: 'rgba(0, 0, 0, 0)',
+            pointHoverBorderColor: 'rgb(75, 192, 192)',
+            tension: 0.1,
+          },
+          {
+            label: 'Curr',
+            data: plotter.data.current,
+            fill: false,
+            pointBorderColor: 'rgba(0, 0, 0, 0)',
+            pointBackgroundColor: 'rgba(0, 0, 0, 0)',
+            pointHoverBorderColor: 'red',
+            tension: 0.1,
+          },
+
+          {
+            label: 'Cell Diff',
             data: plotter.data.current,
             fill: false,
             pointBorderColor: 'rgba(0, 0, 0, 0)',
@@ -653,11 +694,13 @@
     plotter.onAdd = () => {
       chart.data.labels = plotter.labels;
       chart.data.datasets[0].data = plotter.data.capacity;
-      chart.data.datasets[1].data = plotter.data.current;
+      chart.data.datasets[1].data = plotter.data.voltage;
+      chart.data.datasets[2].data = plotter.data.current;
+      chart.data.datasets[3].data = plotter.data.cellDiff;
 
       plotter.data.cells.forEach((v, i) => {
-        if (!chart.data.datasets[i + 2]) {
-          chart.data.datasets[i + 2] = {
+        if (!chart.data.datasets[i + 4]) {
+          chart.data.datasets[i + 4] = {
             label: `Cell ${i + 1}`,
             data: [],
             fill: false,
@@ -667,7 +710,7 @@
             tension: 0.1,
           };
         }
-        chart.data.datasets[i + 2].data = v;
+        chart.data.datasets[i + 4].data = v;
       });
 
       chart.update();
