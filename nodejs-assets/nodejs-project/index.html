@@ -192,6 +192,83 @@
   </body>
 
   <script>
+    class BatteryDischargeEstimator {
+      constructor(initialVoltage, targetVoltage) {
+        this.initialVoltage = initialVoltage;
+        this.targetVoltage = targetVoltage;
+        this.history = []; // Array to store voltage and time measurements
+      }
+
+      recordVoltage(currentVoltage) {
+        if (this.history.length) {
+          const lastVoltage = this.history[this.history.length - 1].voltage;
+          if (currentVoltage >= lastVoltage) return;
+        }
+        this.history.push({
+          time: Date.now(),
+          voltage: currentVoltage,
+        });
+      }
+
+      estimateRemainingTime() {
+        if (this.history.length < 3) {
+          return;
+        }
+
+        // Calculate average discharge rate from history
+        let totalVoltageDrop = 0;
+        let totalTimeElapsed = 0;
+
+        for (let i = 1; i < this.history.length; i++) {
+          const voltageDrop =
+            this.history[i - 1].voltage - this.history[i].voltage;
+          const timeElapsed =
+            (this.history[i].time - this.history[i - 1].time) /
+            (60 * 60 * 1000); // in hours
+          totalVoltageDrop += voltageDrop;
+          totalTimeElapsed += timeElapsed;
+        }
+
+        const averageDischargeRate = totalVoltageDrop / totalTimeElapsed;
+
+        const currentVoltage = this.history[this.history.length - 1].voltage;
+        if (currentVoltage <= this.targetVoltage) {
+          return 0; // if current Voltage less than target voltage, return 0
+        }
+
+        const remainingVoltage = currentVoltage - this.targetVoltage;
+        const remainingTime = remainingVoltage / averageDischargeRate;
+        return remainingTime; // in hours
+      }
+
+      getDischargeRate() {
+        if (this.history.length < 2) {
+          throw new Error('Not enough data points to estimate discharge rate.');
+        }
+        let totalVoltageDrop = 0;
+        let totalTimeElapsed = 0;
+
+        for (let i = 1; i < this.history.length; i++) {
+          const voltageDrop =
+            this.history[i - 1].voltage - this.history[i].voltage;
+          const timeElapsed =
+            (this.history[i].time - this.history[i - 1].time) /
+            (60 * 60 * 1000); // in hours
+          totalVoltageDrop += voltageDrop;
+          totalTimeElapsed += timeElapsed;
+        }
+
+        const averageDischargeRate = totalVoltageDrop / totalTimeElapsed;
+        return averageDischargeRate;
+      }
+
+      getDischargeTime() {
+        const averageDischargeRate = this.getDischargeRate();
+        const timeToTarget =
+          (this.initialVoltage - this.targetVoltage) / averageDischargeRate;
+        return timeToTarget;
+      }
+    }
     class Plotter {
       labels = [];
       data = {
@@ -387,6 +464,7 @@
       sections.innerHTML += element;
     };
 
+    const estimateBalanceCells = [];
     function createCellsSection(balanceStatus, cellVolts) {
       if (!balanceStatus || !cellVolts) return;
       const existing = document.getElementById('cellsSection');
@@ -423,16 +501,38 @@
                 ${balanceStatus
                   .map((v, i) => {
                     const id = `cells-volt-bal-${i}`;
+                    if (!v) {
+                      delete estimateBalanceCells[i];
+                    }
+                    let bde;
+                    if (v) {
+                      bde =
+                        estimateBalanceCells[i] ||
+                        new BatteryDischargeEstimator(
+                          cellVolts[i],
+                          cellVolts[indicesOfLow[0]],
+                        );
+                      bde.recordVoltage(cellVolts[i]);
+                      console.log(bde);
+                      estimateBalanceCells[i] = bde;
+                    }
+                    const remainingBalTime = bde?.estimateRemainingTime();
 
                     let existingEl = document.getElementById(id);
-                    const text = `${v ? '(Bal) ' : ' '}${cellVolts[i].toFixed(
-                      3,
-                    )}V`;
+                    const text = `${
+                      v
+                        ? `(Bal${
+                            remainingBalTime
+                              ? ' Est ' + remainingBalTime.toFixed(2) + 'h'
+                              : ''
+                          }) `
+                        : ' '
+                    }${cellVolts[i].toFixed(3)}V`;
 
                     if (existingEl) {
-                      const newNum = parseFloat(text.match(/[\d\.]+/));
+                      const newNum = cellVolts[i];
                       const oldNum = parseFloat(
-                        existingEl.innerText?.match(/[\d\.]+/),
+                        existingEl.getAttribute('data-volt'),
                       );
 
                       if (oldNum !== newNum) {
@@ -449,9 +549,11 @@
                     }
 
                     return `
-                  <div class="cell-item">
+                  <div class="cell-item" >
                     <div class="cell-title">${i + 1} </div>
-                    <div class="cells-volt-bal" id="${id}">
+                    <div class="cells-volt-bal" id="${id}" data-volt="${
+                      cellVolts[i]
+                    }">
                       ${highVoltageIndex === i ? '📈' : ''}
                       ${lowVoltageIndex === i ? '📉' : ''}
                       ${text}
