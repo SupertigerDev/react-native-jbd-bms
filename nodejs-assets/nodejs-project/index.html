@@ -162,6 +162,10 @@
           color: white;
         }
       }
+
+      #charts {
+        height: 500px;
+      }
     </style>
   </head>
   <body>
@@ -304,22 +308,23 @@
       return indices;
     }
 
-    const infoUrl = `http://192.168.1.190:12345/info`;
+    // const infoUrl = `http://192.168.1.190:12345/info`;
+    const infoUrl = `/info`;
 
     /** @returns {PromiseLike<{
-      name: string;
-      totalVolts: number;
-      current: number;
-      remainingCapacityAh: number;
-      nominalCapacityAh: number;
-      totalCycles: number;
-      remainingPercentSoc: number;
-      bmsNumberOfCells: number;
-      mosfetCharge: boolean;
-      mosfetDischarge: boolean;
-      balanceStatus: boolean[];
-      cellVolts: number[]
-    * } | {code: string}>} */
+          name: string;
+          totalVolts: number;
+          current: number;
+          remainingCapacityAh: number;
+          nominalCapacityAh: number;
+          totalCycles: number;
+          remainingPercentSoc: number;
+          bmsNumberOfCells: number;
+          mosfetCharge: boolean;
+          mosfetDischarge: boolean;
+          balanceStatus: boolean[];
+          cellVolts: number[]
+        * } | {code: string}>} */
     async function fetchBatteryInfo() {
       try {
         const response = await fetch(infoUrl);
@@ -357,14 +362,14 @@
       }
 
       const element = `
-        <div class="section" id="section-${id}">
-          <div class="section-title-description">
-            <div id="section-title-${id}">${title}</div>
-            <div id="section-description-${id}">${description}</div>
+            <div class="section" id="section-${id}">
+              <div class="section-title-description">
+                <div id="section-title-${id}">${title}</div>
+                <div id="section-description-${id}">${description}</div>
+                </div>
+              <div class="section-value" id="section-value-${id}">${value}</div>
             </div>
-          <div class="section-value" id="section-value-${id}">${value}</div>
-        </div>
-      `;
+          `;
 
       const sections = document.getElementById('sections');
       sections.innerHTML += element;
@@ -390,59 +395,62 @@
         cellVolts.reduce((a, b) => a + b, 0) / cellVolts.length;
 
       const element = `
-          <div id="cellsSection">
-            <div class="cells-title-description">
-              <div class="cells-title">Cells</div>
-              <div class="cells-high-low">
-                <div class="highvolt">High: ${highVolt}V</div>
-                <div class="lowvolt">Low: ${lowVolt}V</div>
-              </div>
-              <div class="cells-diff-avg">
-                <div class="diff">Diff: ${voltageDiff}V</div>
-                <div class="avg">Avg: ${averageVoltage.toFixed(3)}V</div>
-              </div>
-            </div>
-
-            ${balanceStatus
-              .map((v, i) => {
-                const id = `cells-volt-bal-${i}`;
-
-                let existingEl = document.getElementById(id);
-                const text = `${v ? '(Bal) ' : ' '}${cellVolts[i].toFixed(3)}V`;
-
-                if (existingEl) {
-                  const newNum = parseFloat(text.match(/[\d\.]+/));
-                  const oldNum = parseFloat(
-                    existingEl.innerText?.match(/[\d\.]+/),
-                  );
-
-                  if (oldNum !== newNum) {
-                    setTimeout(() => {
-                      existingEl = document.getElementById(id);
-                      existingEl.style.animation =
-                        (newNum > oldNum ? 'fadeGreen' : 'fadeRed') + ' 1.5s';
-                      setTimeout(() => {
-                        existingEl.style.animation = '';
-                      }, 1500);
-                    }, 0);
-                  }
-                }
-
-                return `
-              <div class="cell-item">
-                <div class="cell-title">${i + 1} </div>
-                <div class="cells-volt-bal" id="${id}">
-                  ${highVoltageIndex === i ? '📈' : ''}
-                  ${lowVoltageIndex === i ? '📉' : ''}
-                  ${text} 
+              <div id="cellsSection">
+                <div class="cells-title-description">
+                  <div class="cells-title">Cells</div>
+                  <div class="cells-high-low">
+                    <div class="highvolt">High: ${highVolt}V</div>
+                    <div class="lowvolt">Low: ${lowVolt}V</div>
+                  </div>
+                  <div class="cells-diff-avg">
+                    <div class="diff">Diff: ${voltageDiff}V</div>
+                    <div class="avg">Avg: ${averageVoltage.toFixed(3)}V</div>
+                  </div>
                 </div>
+
+                ${balanceStatus
+                  .map((v, i) => {
+                    const id = `cells-volt-bal-${i}`;
+
+                    let existingEl = document.getElementById(id);
+                    const text = `${v ? '(Bal) ' : ' '}${cellVolts[i].toFixed(
+                      3,
+                    )}V`;
+
+                    if (existingEl) {
+                      const newNum = parseFloat(text.match(/[\d\.]+/));
+                      const oldNum = parseFloat(
+                        existingEl.innerText?.match(/[\d\.]+/),
+                      );
+
+                      if (oldNum !== newNum) {
+                        setTimeout(() => {
+                          existingEl = document.getElementById(id);
+                          existingEl.style.animation =
+                            (newNum > oldNum ? 'fadeGreen' : 'fadeRed') +
+                            ' 1.5s';
+                          setTimeout(() => {
+                            existingEl.style.animation = '';
+                          }, 1500);
+                        }, 0);
+                      }
+                    }
+
+                    return `
+                  <div class="cell-item">
+                    <div class="cell-title">${i + 1} </div>
+                    <div class="cells-volt-bal" id="${id}">
+                      ${highVoltageIndex === i ? '📈' : ''}
+                      ${lowVoltageIndex === i ? '📉' : ''}
+                      ${text}
+                    </div>
+                  </div>
+                `;
+                  })
+                  .join('')}
+
               </div>
             `;
-              })
-              .join('')}
-
-          </div>
-        `;
 
       if (existing) {
         existing.outerHTML = element;
@@ -551,6 +559,9 @@
             data: plotter.data.capacity,
             fill: false,
             borderColor: 'rgb(75, 192, 192)',
+            pointBorderColor: 'rgba(0, 0, 0, 0)',
+            pointBackgroundColor: 'rgba(0, 0, 0, 0)',
+            pointHoverBorderColor: 'rgb(75, 192, 192)',
             tension: 0.1,
           },
           {
@@ -558,14 +569,35 @@
             data: plotter.data.current,
             fill: false,
             borderColor: 'red',
+            pointBorderColor: 'rgba(0, 0, 0, 0)',
+            pointBackgroundColor: 'rgba(0, 0, 0, 0)',
+            pointHoverBorderColor: 'red',
             tension: 0.1,
           },
         ],
       },
       options: {
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'nearest',
+          intersect: false,
+        },
+        hover: {
+          intersect: false,
+        },
+        tooltips: {
+          intersect: false,
+          mode: 'x',
+        },
+
         scales: {
-          y: {
-            beginAtZero: true,
+          // y: {
+          //   beginAtZero: true,
+          // },
+        },
+        plugins: {
+          tooltip: {
+            animation: false,
           },
         },
       },
@@ -582,6 +614,9 @@
             data: [],
             fill: false,
             borderColor: 'rgb(75, 192, 192)',
+            pointBorderColor: 'rgba(0, 0, 0, 0)',
+            pointBackgroundColor: 'rgba(0, 0, 0, 0)',
+            pointHoverBorderColor: 'rgb(75, 192, 192)',
             tension: 0.1,
           };
         }
