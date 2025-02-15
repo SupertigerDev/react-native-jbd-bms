@@ -394,8 +394,8 @@
       return indices;
     }
 
-    // const infoUrl = `http://192.168.1.190:12345/info`;
-    const infoUrl = `/info`;
+    const infoUrl = `http://192.168.1.190:12345/info`;
+    // const infoUrl = `/info`;
 
     /** @returns {PromiseLike<{
           name: string;
@@ -550,8 +550,8 @@
                     <div class="cells-volt-bal" id="${id}" data-volt="${
                       cellVolts[i]
                     }">
-                      ${highVoltageIndex === i ? '📈' : ''}
-                      ${lowVoltageIndex === i ? '📉' : ''}
+                      ${highVoltageIndex === i ? '🟢' : ''}
+                      ${lowVoltageIndex === i ? '🔴' : ''}
                       ${text}
                     </div>
                   </div>
