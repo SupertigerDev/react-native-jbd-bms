@@ -50,6 +50,18 @@ const server = new http.createServer((req, res) => {
 
     return;
   }
+  if (req.url === '/chartjs-plugin-autocolors.js') {
+    res.setHeader('Content-Type', 'text/javascript');
+    res.writeHead(200);
+    res.end(
+      fs.readFileSync(
+        path.join(__dirname, 'chartjs-plugin-autocolors.js'),
+        'utf-8',
+      ),
+    );
+
+    return;
+  }
 
   const id = genId();
   req.on('close', () => {
