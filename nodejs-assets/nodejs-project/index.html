@@ -570,6 +570,8 @@
     });
 
     const ctx = document.getElementById('voltageChart');
+    Chart.defaults.color = 'white';
+
     const chart = new Chart(ctx, {
       type: 'line',
       data: {
