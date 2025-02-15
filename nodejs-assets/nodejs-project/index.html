@@ -304,24 +304,19 @@
           for (let i = 0; i < lastPlotDuration / 70 / 1000 - 1; i++) {
             const date = new Date(this.lastPlottedAt + 60 * 1000 * (i + 1));
             this.labels.push(
-              Intl.DateTimeFormat('en', {timeStyle: 'short'}).format(date),
+              Intl.DateTimeFormat('en', {
+                timeStyle: 'short',
+                hour12: false,
+              }).format(date),
             );
-            this.data.capacity.push(
-              this.data.capacity[this.data.capacity.length - 1],
-            );
-            this.data.current.push(
-              this.data.current[this.data.current.length - 1],
-            );
+            this.data.capacity.push(null);
+            this.data.current.push(null);
 
-            this.data.voltage.push(
-              this.data.voltage[this.data.voltage.length - 1],
-            );
-            this.data.cellDiff.push(
-              this.data.cellDiff[this.data.cellDiff.length - 1],
-            );
+            this.data.voltage.push(null);
+            this.data.cellDiff.push(null);
 
             this.data.cells.forEach(cell => {
-              cell.push(cell[cell.length - 1]);
+              cell.push(null);
             });
           }
         }
@@ -329,7 +324,9 @@
         this.lastPlottedAt = Date.now();
         const date = new Date();
         this.labels.push(
-          Intl.DateTimeFormat('en', {timeStyle: 'short'}).format(date),
+          Intl.DateTimeFormat('en', {timeStyle: 'short', hour12: false}).format(
+            date,
+          ),
         );
 
         this.data.capacity.push(value.capacity);
@@ -513,7 +510,6 @@
                           cellVolts[indicesOfLow[0]],
                         );
                       bde.recordVoltage(cellVolts[i]);
-                      console.log(bde);
                       estimateBalanceCells[i] = bde;
                     }
                     const remainingBalTime = bde?.estimateRemainingTime();
@@ -741,6 +737,7 @@
         ],
       },
       options: {
+        spanGaps: true,
         maintainAspectRatio: false,
         interaction: {
           mode: 'nearest',
