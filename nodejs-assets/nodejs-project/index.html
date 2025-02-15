@@ -1,9 +1,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0" />
+
     <script src="./chartjs-plugin-autocolors.js"></script>
     <script src="./chart.js"></script>
+    <script src="./hammerjs.js"></script>
+    <script src="./chartjs-plugin-zoom.min.js"></script>
+
     <title>JBD BMS</title>
     <style>
       * {
@@ -394,8 +398,8 @@
       return indices;
     }
 
-    // const infoUrl = `http://192.168.1.190:12345/info`;
-    const infoUrl = `/info`;
+    const infoUrl = `http://192.168.1.190:12345/info`;
+    //const infoUrl = `/info`;
 
     /** @returns {PromiseLike<{
           name: string;
@@ -671,6 +675,8 @@
 
     const autocolors = window['chartjs-plugin-autocolors'];
     Chart.register(autocolors);
+    Chart.register(ChartZoom);
+
     const lighten = (color, value) =>
       Chart.helpers.color(color).lighten(value).rgbString();
     const brighten = color => Chart.helpers.color(color).alpha(1).rgbString();
@@ -705,6 +711,7 @@
             pointBackgroundColor: 'rgba(0, 0, 0, 0)',
             pointHoverBorderColor: 'rgb(75, 192, 192)',
             tension: 0.1,
+            hidden: true,
           },
           {
             label: 'Volts',
@@ -713,6 +720,7 @@
             pointBorderColor: 'rgba(0, 0, 0, 0)',
             pointBackgroundColor: 'rgba(0, 0, 0, 0)',
             pointHoverBorderColor: 'rgb(75, 192, 192)',
+            hidden: true,
             tension: 0.1,
           },
           {
@@ -722,6 +730,7 @@
             pointBorderColor: 'rgba(0, 0, 0, 0)',
             pointBackgroundColor: 'rgba(0, 0, 0, 0)',
             pointHoverBorderColor: 'red',
+            hidden: true,
             tension: 0.1,
           },
 
@@ -739,6 +748,13 @@
       options: {
         spanGaps: true,
         maintainAspectRatio: false,
+        transitions: {
+          zoom: {
+            animation: {
+              duration: 0,
+            },
+          },
+        },
         interaction: {
           mode: 'nearest',
           intersect: false,
@@ -769,6 +785,26 @@
           },
         },
         plugins: {
+          zoom: {
+            limits: {
+              x: {min: 10, max: 'original'},
+              y: {min: 10, max: 'original'},
+            },
+            pan: {
+              enabled: true,
+              mode: 'x',
+            },
+            zoom: {
+              wheel: {
+                enabled: true,
+                speed: -0.05,
+              },
+              pinch: {
+                enabled: true,
+              },
+              mode: 'x',
+            },
+          },
           legend: {
             align: 'start',
             labels: {
@@ -800,6 +836,8 @@
       plotter.data.cells.forEach((v, i) => {
         if (!chart.data.datasets[i + 4]) {
           chart.data.datasets[i + 4] = {
+            hidden: true,
+
             label: `Cell ${i + 1}`,
             data: [],
             fill: false,

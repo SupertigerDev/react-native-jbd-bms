@@ -59,7 +59,23 @@ const server = new http.createServer((req, res) => {
         'utf-8',
       ),
     );
-
+    return;
+  }
+  if (req.url === '/hammerjs.js') {
+    res.setHeader('Content-Type', 'text/javascript');
+    res.writeHead(200);
+    res.end(fs.readFileSync(path.join(__dirname, 'hammerjs.js'), 'utf-8'));
+    return;
+  }
+  if (req.url === '/chartjs-plugin-zoom.min.js') {
+    res.setHeader('Content-Type', 'text/javascript');
+    res.writeHead(200);
+    res.end(
+      fs.readFileSync(
+        path.join(__dirname, 'chartjs-plugin-zoom.min.js'),
+        'utf-8',
+      ),
+    );
     return;
   }
 
