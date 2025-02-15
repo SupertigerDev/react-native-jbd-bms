@@ -43,6 +43,13 @@ const server = new http.createServer((req, res) => {
 
     return;
   }
+  if (req.url === '/chart.js') {
+    res.setHeader('Content-Type', 'text/javascript');
+    res.writeHead(200);
+    res.end(fs.readFileSync(path.join(__dirname, 'chart.js'), 'utf-8'));
+
+    return;
+  }
 
   const id = genId();
   req.on('close', () => {

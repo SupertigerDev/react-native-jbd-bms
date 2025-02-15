@@ -11,9 +11,9 @@ const bmsService = '0000ff00-0000-1000-8000-00805f9b34fb';
 const bmsTx = '0000ff02-0000-1000-8000-00805f9b34fb';
 const bmsRx = '0000ff01-0000-1000-8000-00805f9b34fb';
 
-const handleAndroidPermissions = () => {
+const handleAndroidPermissions = async () => {
   if (Platform.OS === 'android' && Platform.Version >= 31) {
-    PermissionsAndroid.requestMultiple([
+    await PermissionsAndroid.requestMultiple([
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
       PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
@@ -29,15 +29,15 @@ const handleAndroidPermissions = () => {
       }
     });
   } else if (Platform.OS === 'android' && Platform.Version >= 23) {
-    PermissionsAndroid.check(
+    await PermissionsAndroid.check(
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-    ).then(checkResult => {
+    ).then(async checkResult => {
       if (checkResult) {
         console.debug(
           '[handleAndroidPermissions] runtime permission Android <12 already OK',
         );
       } else {
-        PermissionsAndroid.request(
+        return await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         ).then(requestResult => {
           if (requestResult) {
@@ -71,15 +71,18 @@ interface BatteryInfo {
 export class BMS {
   selectedPeripheral: Peripheral | undefined;
 
-  constructor() {
-    handleAndroidPermissions();
-  }
+  permissionRequested: boolean = false;
+  constructor() {}
 
   scanQueue = new Queue();
 
   scanCallback: EventSubscription | null = null;
   async scan() {
     return this.scanQueue.enqueue(async () => {
+      if (!this.permissionRequested) {
+        this.permissionRequested = true;
+        await handleAndroidPermissions();
+      }
       console.log('scanning');
 
       await BLEManager.start({showAlert: false});

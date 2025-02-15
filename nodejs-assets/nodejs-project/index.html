@@ -104,11 +104,30 @@
 
         .cells-title {
           margin-left: 20px;
+          flex: 1;
         }
+
+        .cells-diff-avg {
+          border-left: solid 1px rgba(255, 255, 255, 0.4);
+          padding-right: 10px;
+          padding-left: 8px;
+        }
+
+        .cells-diff-avg,
+        .cells-high-low {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          font-size: 14px;
+          text-align: end;
+          font-variant-numeric: tabular-nums;
+        }
+
         .cells-title-description {
           display: flex;
           height: 50px;
           align-items: center;
+          gap: 10px;
         }
         .cell-item {
           height: 50px;
@@ -168,22 +187,122 @@
   </body>
 
   <script>
+    class Plotter {
+      labels = [];
+      data = {
+        capacity: [],
+        current: [],
+        cells: [],
+      };
+      onAdd = null;
+      lastPlottedAt = -1;
 
-  class Plotter {
-    labels = [];
-    data = [];
-    onAdd = null
-    addValue = (value) => {
-      const date = new Date();
-      this.labels.push(Intl.DateTimeFormat('en', {timeStyle: "short"}).format(date));
-      this.data.push(value);
-      this.onAdd?.({label: date, value});
+      constructor() {
+        const storage = localStorage.getItem('plotter');
+        if (storage) {
+          const {labels, data, lastPlottedAt} = JSON.parse(storage);
+          this.labels = labels;
+          this.data = data;
+          this.lastPlottedAt = lastPlottedAt;
+          setTimeout(() => {
+            this.onAdd();
+          }, 1000);
+        }
+      }
+      addValues = value => {
+        // only plot after 60 seconds
+        if (Date.now() - this.lastPlottedAt < 60 * 1000) return;
+
+        // check how long it has been since the last plot
+        const lastPlotDuration = Date.now() - this.lastPlottedAt;
+        // add nulls to array if it has been more than 60 seconds since the last plot. plot every 60 seconds
+        if (this.lastPlottedAt !== -1 && lastPlotDuration > 61 * 1000) {
+          for (let i = 0; i < lastPlotDuration / 70 / 1000 - 1; i++) {
+            const date = new Date(this.lastPlottedAt + 60 * 1000 * (i + 1));
+            this.labels.push(
+              Intl.DateTimeFormat('en', {timeStyle: 'short'}).format(date),
+            );
+            this.data.capacity.push(
+              this.data.capacity[this.data.capacity.length - 1],
+            );
+            this.data.current.push(
+              this.data.current[this.data.current.length - 1],
+            );
+
+            this.data.cells.forEach(cell => {
+              cell.push(cell[cell.length - 1]);
+            });
+          }
+        }
+
+        this.lastPlottedAt = Date.now();
+        const date = new Date();
+        this.labels.push(
+          Intl.DateTimeFormat('en', {timeStyle: 'short'}).format(date),
+        );
+
+        this.data.capacity.push(value.capacity);
+        this.data.current.push(value.current);
+
+        value.cellVolts.forEach((v, i) => {
+          this.data.cells[i] = [...(this.data.cells[i] || []), v];
+        });
+
+        this.onAdd?.();
+        this.saveToStorage();
+      };
+      saveToStorage() {
+        localStorage.setItem(
+          'plotter',
+          JSON.stringify({
+            labels: this.labels,
+            data: this.data,
+            lastPlottedAt: this.lastPlottedAt,
+          }),
+        );
+      }
     }
-  }
 
-  const voltagePlotter = new Plotter();
+    const plotter = new Plotter();
 
+    function getIndicesOfLargestNumbers(arr) {
+      if (!arr || arr.length === 0) {
+        return []; // Handle empty or null array
+      }
 
+      let largestNumber = arr[0];
+      let indices = [0];
+
+      for (let i = 1; i < arr.length; i++) {
+        if (arr[i] > largestNumber) {
+          largestNumber = arr[i];
+          indices = [i]; // Reset indices array as we found a new largest
+        } else if (arr[i] === largestNumber) {
+          indices.push(i); // Add index if it's equal to the current largest
+        }
+      }
+
+      return indices;
+    }
+    function getIndicesOfSmallestNumbers(arr) {
+      if (!arr || arr.length === 0) {
+        return []; // Handle empty or null array
+      }
+
+      let smallestNumber = arr[0];
+      let indices = [0];
+
+      for (let i = 1; i < arr.length; i++) {
+        if (arr[i] < smallestNumber) {
+          smallestNumber = arr[i];
+          indices = [i]; // Reset indices array as we found a new smallest
+        } else if (arr[i] === smallestNumber) {
+          indices.push(i); // Add index if it's equal to the current smallest
+        }
+      }
+
+      return indices;
+    }
 
     const infoUrl = `http://192.168.1.190:12345/info`;
 
@@ -255,13 +374,33 @@
       if (!balanceStatus || !cellVolts) return;
       const existing = document.getElementById('cellsSection');
 
-      voltagePlotter.addValue(cellVolts[1]);
+      const indicesOfHigh = getIndicesOfLargestNumbers(cellVolts);
+      const indicesOfLow = getIndicesOfSmallestNumbers(cellVolts);
+      let highVoltageIndex = indicesOfHigh.length === 1 ? indicesOfHigh[0] : -1;
+      let lowVoltageIndex = indicesOfLow.length === 1 ? indicesOfLow[0] : -1;
+
+      const highVolt = cellVolts[indicesOfHigh[0]];
+      const lowVolt = cellVolts[indicesOfLow[0]];
+
+      const voltageDiff = Math.abs(
+        cellVolts[indicesOfHigh[0]] - cellVolts[indicesOfLow[0]],
+      ).toFixed(3);
+
+      const averageVoltage =
+        cellVolts.reduce((a, b) => a + b, 0) / cellVolts.length;
 
       const element = `
           <div id="cellsSection">
             <div class="cells-title-description">
               <div class="cells-title">Cells</div>
-              <div class="cells-title-description"></div>
+              <div class="cells-high-low">
+                <div class="highvolt">High: ${highVolt}V</div>
+                <div class="lowvolt">Low: ${lowVolt}V</div>
+              </div>
+              <div class="cells-diff-avg">
+                <div class="diff">Diff: ${voltageDiff}V</div>
+                <div class="avg">Avg: ${averageVoltage.toFixed(3)}V</div>
+              </div>
             </div>
 
             ${balanceStatus
@@ -293,7 +432,9 @@
               <div class="cell-item">
                 <div class="cell-title">${i + 1} </div>
                 <div class="cells-volt-bal" id="${id}">
-                  ${text}
+                  ${highVoltageIndex === i ? '📈' : ''}
+                  ${lowVoltageIndex === i ? '📉' : ''}
+                  ${text} 
                 </div>
               </div>
             `;
@@ -329,6 +470,12 @@
 
           return;
         }
+
+        plotter.addValues({
+          capacity: info.remainingCapacityAh,
+          current: info.current,
+          cellVolts: info.cellVolts,
+        });
 
         // use current capacity, current and nominal capacity to calculate remaining
         let secondsRemaining =
@@ -393,34 +540,55 @@
     }
     fetchSchedule();
 
-
     const ctx = document.getElementById('voltageChart');
-    const chart =new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: voltagePlotter.labels,
-      datasets: [{
-        label: 'Voltage',
-        data: voltagePlotter.data,
-        fill: true,
-        backgroundColor: "rgba(255,255,255,0.1)",
-        borderColor: 'rgb(75, 192, 192)',
-        tension: 0.1
-      }]
-    },
-    options: {
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  });
-  voltagePlotter.onAdd = () => {
-    chart.data.labels = voltagePlotter.labels;
-    chart.data.datasets[0].data = voltagePlotter.data;
-    chart.update();
-  }
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: plotter.labels,
+        datasets: [
+          {
+            label: 'Capacity',
+            data: plotter.data.capacity,
+            fill: false,
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1,
+          },
+          {
+            label: 'Current',
+            data: plotter.data.current,
+            fill: false,
+            borderColor: 'red',
+            tension: 0.1,
+          },
+        ],
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+          },
+        },
+      },
+    });
+    plotter.onAdd = () => {
+      chart.data.labels = plotter.labels;
+      chart.data.datasets[0].data = plotter.data.capacity;
+      chart.data.datasets[1].data = plotter.data.current;
 
+      plotter.data.cells.forEach((v, i) => {
+        if (!chart.data.datasets[i + 2]) {
+          chart.data.datasets[i + 2] = {
+            label: `Cell ${i + 1}`,
+            data: [],
+            fill: false,
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1,
+          };
+        }
+        chart.data.datasets[i + 2].data = v;
+      });
+
+      chart.update();
+    };
   </script>
 </html>
