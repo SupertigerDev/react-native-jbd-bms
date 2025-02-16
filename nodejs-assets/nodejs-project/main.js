@@ -43,39 +43,11 @@ const server = new http.createServer((req, res) => {
 
     return;
   }
-  if (req.url === '/chart.js') {
+  if (req.url === '/echarts.min.js') {
     res.setHeader('Content-Type', 'text/javascript');
     res.writeHead(200);
-    res.end(fs.readFileSync(path.join(__dirname, 'chart.js'), 'utf-8'));
+    res.end(fs.readFileSync(path.join(__dirname, 'echarts.min.js'), 'utf-8'));
 
-    return;
-  }
-  if (req.url === '/chartjs-plugin-autocolors.js') {
-    res.setHeader('Content-Type', 'text/javascript');
-    res.writeHead(200);
-    res.end(
-      fs.readFileSync(
-        path.join(__dirname, 'chartjs-plugin-autocolors.js'),
-        'utf-8',
-      ),
-    );
-    return;
-  }
-  if (req.url === '/hammerjs.js') {
-    res.setHeader('Content-Type', 'text/javascript');
-    res.writeHead(200);
-    res.end(fs.readFileSync(path.join(__dirname, 'hammerjs.js'), 'utf-8'));
-    return;
-  }
-  if (req.url === '/chartjs-plugin-zoom.min.js') {
-    res.setHeader('Content-Type', 'text/javascript');
-    res.writeHead(200);
-    res.end(
-      fs.readFileSync(
-        path.join(__dirname, 'chartjs-plugin-zoom.min.js'),
-        'utf-8',
-      ),
-    );
     return;
   }
 
