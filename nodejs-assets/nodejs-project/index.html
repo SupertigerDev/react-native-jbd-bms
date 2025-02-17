@@ -288,6 +288,8 @@
       onAdd = null;
       lastPlottedAt = -1;
 
+      everySecond = false;
+
       constructor() {
         const storage = localStorage.getItem('plotter');
         if (storage) {
@@ -301,34 +303,37 @@
         }
       }
       addValues = value => {
-        // only plot after 60 seconds
-        if (Date.now() - this.lastPlottedAt < 60 * 1000) return;
+        if (!this.everySecond) {
+          // only plot after 60 seconds
+          if (Date.now() - this.lastPlottedAt < 60 * 1000) return;
 
-        // check how long it has been since the last plot
-        const lastPlotDuration = Date.now() - this.lastPlottedAt;
-        // add nulls to array if it has been more than 60 seconds since the last plot. plot every 60 seconds
-        if (this.lastPlottedAt !== -1 && lastPlotDuration > 61 * 1000) {
-          for (let i = 0; i < lastPlotDuration / 70 / 1000 - 1; i++) {
-            const date = new Date(this.lastPlottedAt + 60 * 1000 * (i + 1));
-            this.labels.push(
-              Intl.DateTimeFormat('en', {
-                timeStyle: 'short',
-                hour12: false,
-              }).format(date),
-            );
-            this.data.capacity.push(null);
-            this.data.current.push(null);
+          // check how long it has been since the last plot
+          const lastPlotDuration = Date.now() - this.lastPlottedAt;
+          // add nulls to array if it has been more than 60 seconds since the last plot. plot every 60 seconds
+          if (this.lastPlottedAt !== -1 && lastPlotDuration > 61 * 1000) {
+            for (let i = 0; i < lastPlotDuration / 70 / 1000 - 1; i++) {
+              const date = new Date(this.lastPlottedAt + 60 * 1000 * (i + 1));
+              this.labels.push(
+                Intl.DateTimeFormat('en', {
+                  timeStyle: 'short',
+                  hour12: false,
+                }).format(date),
+              );
+              this.data.capacity.push(null);
+              this.data.current.push(null);
 
-            this.data.voltage.push(null);
-            this.data.cellDiff.push(null);
+              this.data.voltage.push(null);
+              this.data.cellDiff.push(null);
 
-            this.data.cells.forEach(cell => {
-              cell.push(null);
-            });
+              this.data.cells.forEach(cell => {
+                cell.push(null);
+              });
+            }
           }
+
+          this.lastPlottedAt = Date.now();
         }
 
-        this.lastPlottedAt = Date.now();
         const date = new Date();
         this.labels.push(
           Intl.DateTimeFormat('en', {timeStyle: 'short', hour12: false}).format(
@@ -740,6 +745,14 @@
           type: 'line',
           smooth: false,
           symbol: 'none',
+          endLabel: {
+            show: true,
+            formatter: '{c}',
+            color: 'white',
+            fontSize: 12,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            distance: 20,
+          },
           connectNulls: true,
           visible: false,
           data: plotter.data.capacity,
@@ -749,6 +762,14 @@
           type: 'line',
           smooth: false,
           symbol: 'none',
+          endLabel: {
+            show: true,
+            formatter: '{c}',
+            color: 'white',
+            fontSize: 12,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            distance: 20,
+          },
           connectNulls: true,
           visible: false,
           data: plotter.data.voltage,
@@ -758,6 +779,14 @@
           type: 'line',
           smooth: false,
           symbol: 'none',
+          endLabel: {
+            show: true,
+            formatter: '{c}',
+            color: 'white',
+            fontSize: 12,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            distance: 20,
+          },
           connectNulls: true,
           visible: false,
           data: plotter.data.current,
@@ -767,6 +796,14 @@
           type: 'line',
           smooth: false,
           symbol: 'none',
+          endLabel: {
+            show: true,
+            formatter: '{c}',
+            color: 'white',
+            fontSize: 12,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            distance: 20,
+          },
 
           connectNulls: true,
           data: plotter.data.cellDiff,
@@ -776,7 +813,14 @@
           type: 'line',
           smooth: false,
           symbol: 'none',
-
+          endLabel: {
+            show: true,
+            formatter: '{c}',
+            color: 'white',
+            fontSize: 12,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            distance: 20,
+          },
           connectNulls: true,
           visible: false,
           data: c,
