@@ -344,12 +344,15 @@
         this.data.capacity.push(value.capacity);
         this.data.current.push(value.current);
         this.data.voltage.push(value.voltage);
-        this.data.cellDiff.push(parseFloat(value.cellDiff.toFixed(3)));
+        console.log(value.cellDiff);
+        this.data.cellDiff.push(
+          parseFloat(parseFloat(value.cellDiff).toFixed(3)),
+        );
 
         value.cellVolts.forEach((v, i) => {
           this.data.cells[i] = [
             ...(this.data.cells[i] || []),
-            parseFloat(v.cellDiff.toFixed(3)),
+            parseFloat(parseFloat(v).toFixed(3)),
           ];
         });
 
@@ -409,8 +412,8 @@
       return indices;
     }
 
-    // const infoUrl = `http://192.168.1.190:12345/info`;
-    const infoUrl = `/info`;
+    const infoUrl = `http://192.168.1.190:12345/info`;
+    // const infoUrl = `/info`;
 
     /** @returns {PromiseLike<{
           name: string;
@@ -832,163 +835,14 @@
     });
 
     // Display the chart using the configuration items and data just specified.
-    const myChart = echarts.init(ctx);
-    myChart.setOption(option());
+    let myChart;
 
-    // const autocolors = window['chartjs-plugin-autocolors'];
-    // Chart.register(autocolors);
-    // Chart.register(ChartZoom);
-
-    // const lighten = (color, value) =>
-    //   Chart.helpers.color(color).lighten(value).rgbString();
-    // const brighten = color => Chart.helpers.color(color).alpha(1).rgbString();
-
-    // Chart.register({
-    //   id: 'legendMargin',
-    //   beforeInit(chart, legend, options) {
-    //     let fitValue = chart.legend.fit;
-    //     chart.legend.fit = function fit() {
-    //       fitValue.bind(chart.legend)();
-    //       return (this.height += options.paddingTop);
-    //     };
-    //   },
-    //   defaults: {
-    //     paddingTop: 16,
-    //   },
-    // });
-
-    // const ctx = document.getElementById('voltageChart');
-    // Chart.defaults.color = 'white';
-
-    // const chart = new Chart(ctx, {
-    //   type: 'line',
-    //   data: {
-    //     labels: plotter.labels,
-    //     datasets: [
-    //       {
-    //         label: 'Cap',
-    //         data: plotter.data.capacity,
-    //         fill: false,
-    //         pointBorderColor: 'rgba(0, 0, 0, 0)',
-    //         pointBackgroundColor: 'rgba(0, 0, 0, 0)',
-    //         pointHoverBorderColor: 'rgb(75, 192, 192)',
-    //         tension: 0.1,
-    //         hidden: true,
-    //       },
-    //       {
-    //         label: 'Volts',
-    //         data: plotter.data.capacity,
-    //         fill: false,
-    //         pointBorderColor: 'rgba(0, 0, 0, 0)',
-    //         pointBackgroundColor: 'rgba(0, 0, 0, 0)',
-    //         pointHoverBorderColor: 'rgb(75, 192, 192)',
-    //         hidden: true,
-    //         tension: 0.1,
-    //       },
-    //       {
-    //         label: 'Curr',
-    //         data: plotter.data.current,
-    //         fill: false,
-    //         pointBorderColor: 'rgba(0, 0, 0, 0)',
-    //         pointBackgroundColor: 'rgba(0, 0, 0, 0)',
-    //         pointHoverBorderColor: 'red',
-    //         hidden: true,
-    //         tension: 0.1,
-    //       },
-
-    //       {
-    //         label: 'Cell Diff',
-    //         data: plotter.data.current,
-    //         fill: false,
-    //         pointBorderColor: 'rgba(0, 0, 0, 0)',
-    //         pointBackgroundColor: 'rgba(0, 0, 0, 0)',
-    //         pointHoverBorderColor: 'red',
-    //         tension: 0.1,
-    //       },
-    //     ],
-    //   },
-    //   options: {
-    //     spanGaps: true,
-    //     maintainAspectRatio: false,
-    //     transitions: {
-    //       zoom: {
-    //         animation: {
-    //           duration: 0,
-    //         },
-    //       },
-    //     },
-    //     interaction: {
-    //       mode: 'nearest',
-    //       intersect: false,
-    //     },
-    //     hover: {
-    //       intersect: false,
-    //     },
-    //     tooltips: {
-    //       intersect: false,
-    //       mode: 'x',
-    //     },
-
-    //     scales: {
-    //       // y: {
-    //       //   beginAtZero: true,
-    //       // },
-    //       x: {
-    //         display: true,
-    //         grid: {
-    //           color: 'rgba(255, 255, 255, 0.1)',
-    //         },
-    //       },
-    //       y: {
-    //         display: true,
-    //         grid: {
-    //           color: 'rgba(255, 255, 255, 0.1)',
-    //         },
-    //       },
-    //     },
-    //     plugins: {
-    //       zoom: {
-    //         limits: {
-    //           x: {min: 10, max: 'original'},
-    //           y: {min: 10, max: 'original'},
-    //         },
-    //         pan: {
-    //           enabled: true,
-    //           mode: 'x',
-    //         },
-    //         zoom: {
-    //           wheel: {
-    //             enabled: true,
-    //             speed: -0.05,
-    //           },
-    //           pinch: {
-    //             enabled: true,
-    //           },
-    //           mode: 'x',
-    //         },
-    //       },
-    //       legend: {
-    //         align: 'start',
-    //         labels: {
-    //           boxHeight: 20,
-    //         },
-    //       },
-    //       tooltip: {
-    //         animation: false,
-    //       },
-    //       autocolors: {
-    //         customize(context) {
-    //           const colors = context.colors;
-    //           return {
-    //             border: brighten(lighten(colors.border, 0.2)),
-    //             background: brighten(lighten(colors.background, 0.2)),
-    //           };
-    //         },
-    //       },
-    //     },
-    //   },
-    // });
     plotter.onAdd = () => {
+      console.log(plotter.data.cells);
+      if (!myChart) {
+        myChart = echarts.init(ctx);
+        myChart.setOption(option());
+      }
       const opts = option();
       myChart.setOption({
         series: opts.series,
