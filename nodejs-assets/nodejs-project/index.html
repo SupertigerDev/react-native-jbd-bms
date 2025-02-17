@@ -344,10 +344,13 @@
         this.data.capacity.push(value.capacity);
         this.data.current.push(value.current);
         this.data.voltage.push(value.voltage);
-        this.data.cellDiff.push(value.cellDiff);
+        this.data.cellDiff.push(parseFloat(value.cellDiff.toFixed(3)));
 
         value.cellVolts.forEach((v, i) => {
-          this.data.cells[i] = [...(this.data.cells[i] || []), v];
+          this.data.cells[i] = [
+            ...(this.data.cells[i] || []),
+            parseFloat(v.cellDiff.toFixed(3)),
+          ];
         });
 
         this.onAdd?.();
@@ -987,7 +990,6 @@
     // });
     plotter.onAdd = () => {
       const opts = option();
-      console.log(myChart);
       myChart.setOption({
         series: opts.series,
         xAxis: opts.xAxis,
