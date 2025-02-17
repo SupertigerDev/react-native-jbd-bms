@@ -344,7 +344,6 @@
         this.data.capacity.push(value.capacity);
         this.data.current.push(value.current);
         this.data.voltage.push(value.voltage);
-        console.log(value.cellDiff);
         this.data.cellDiff.push(
           parseFloat(parseFloat(value.cellDiff).toFixed(3)),
         );
@@ -838,7 +837,6 @@
     let myChart;
 
     plotter.onAdd = () => {
-      console.log(plotter.data.cells);
       if (!myChart) {
         myChart = echarts.init(ctx);
         myChart.setOption(option());
