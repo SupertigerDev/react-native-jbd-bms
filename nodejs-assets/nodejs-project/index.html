@@ -68,7 +68,6 @@
         }
       }
       #estimateTime {
-        margin-left: 130px;
       }
 
       #sections {
@@ -103,16 +102,26 @@
       }
 
       #cellsSection {
-        margin-top: 10px;
+        margin-top: 6px;
         background-color: rgba(255, 255, 255, 0.1);
         border-radius: 8px;
 
         display: flex;
         flex-direction: column;
 
-        .cells-title {
-          margin-left: 20px;
+        .cellDetail {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 10px;
+          text-align: center;
           flex: 1;
+          .cells-title {
+            font-weight: bold;
+          }
+          .value {
+            opacity: 0.7;
+          }
         }
 
         .cells-diff-avg {
@@ -133,24 +142,31 @@
 
         .cells-title-description {
           display: flex;
-          height: 50px;
+          flex-wrap: wrap;
           align-items: center;
           gap: 10px;
+          border-bottom: solid 1px black;
+        }
+        .cells {
+          display: flex;
+          flex-wrap: wrap;
         }
         .cell-item {
-          height: 50px;
-          border-top: solid 1px black;
-          padding-left: 20px;
-          padding-right: 10px;
-          display: flex;
-          align-items: center;
-        }
-        .cell-title {
           flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 10px;
+          gap: 6px;
+          justify-content: center;
+          .cell-title {
+            font-weight: bold;
+          }
         }
+
         .cells-volt-bal {
           font-variant-numeric: tabular-nums;
-          text-align: end;
+          opacity: 0.7;
         }
       }
 
@@ -192,9 +208,11 @@
             <div id="battery-fill"></div>
             <div class="battery-positive"></div>
           </div>
-          <div id="batteryPercent">0%</div>
+          <div>
+            <div id="batteryPercent">0%</div>
+            <div id="estimateTime"></div>
+          </div>
         </div>
-        <div id="estimateTime"></div>
       </div>
 
       <div id="sections"></div>
@@ -507,84 +525,132 @@
       const averageVoltage =
         cellVolts.reduce((a, b) => a + b, 0) / cellVolts.length;
 
+      const els = [
+        {id: 'cell-high', name: 'High', value: highVolt},
+        {id: 'cell-low', name: 'Low', value: lowVolt},
+        {id: 'cell-diff', name: 'Diff', value: voltageDiff},
+        {id: 'cell-avg', name: 'Avg', value: averageVoltage.toFixed(3)},
+      ];
+
       const element = `
               <div id="cellsSection">
+
+
                 <div class="cells-title-description">
-                  <div class="cells-title">Cells</div>
-                  <div class="cells-high-low">
-                    <div class="highvolt">High: ${highVolt}V</div>
-                    <div class="lowvolt">Low: ${lowVolt}V</div>
-                  </div>
-                  <div class="cells-diff-avg">
-                    <div class="diff">Diff: ${voltageDiff}V</div>
-                    <div class="avg">Avg: ${averageVoltage.toFixed(3)}V</div>
-                  </div>
+                  ${els
+                    .map(el => {
+                      let existingEl = document.getElementById(el.id);
+                      if (existingEl) {
+                        const newNum = parseFloat(el.value);
+                        const oldNum = parseFloat(
+                          existingEl.getAttribute('data-value'),
+                        );
+                        console.log(newNum, oldNum);
+                        if (oldNum !== newNum) {
+                          setTimeout(() => {
+                            let existingEl = document.getElementById(el.id);
+                            existingEl.style.animation =
+                              (newNum > oldNum ? 'fadeGreen' : 'fadeRed') +
+                              ' 1.5s';
+                            setTimeout(() => {
+                              existingEl.style.animation = '';
+                            }, 1500);
+                          }, 0);
+                        }
+                      }
+                      return `
+                    <div class="cellDetail">
+                      <div class="cells-title">${el.name}</div>
+                      <div class="value" id="${el.id}" data-value=${el.value}>${el.value}V</div>
+                    </div>
+                  `;
+                    })
+                    .join('')}
                 </div>
 
-                ${balanceStatus
-                  .map((v, i) => {
-                    const id = `cells-volt-bal-${i}`;
-                    if (!v) {
-                      delete estimateBalanceCells[i];
-                    }
-                    let bde;
-                    if (v) {
-                      bde =
-                        estimateBalanceCells[i] ||
-                        new BatteryDischargeEstimator(
-                          cellVolts[i],
-                          cellVolts[indicesOfLow[0]],
-                        );
-                      bde.recordVoltage(cellVolts[i]);
-                      estimateBalanceCells[i] = bde;
-                    }
-                    const remainingBalTime = bde?.estimateRemainingTime();
 
-                    let existingEl = document.getElementById(id);
-                    const text = `${
-                      v
-                        ? `(Bal${
-                            remainingBalTime
-                              ? ' Est ' + remainingBalTime.toFixed(2) + 'h'
-                              : ''
-                          }) `
-                        : ' '
-                    }${cellVolts[i].toFixed(3)}V`;
-
-                    if (existingEl) {
-                      const newNum = cellVolts[i];
-                      const oldNum = parseFloat(
-                        existingEl.getAttribute('data-volt'),
-                      );
-
-                      if (oldNum !== newNum) {
-                        setTimeout(() => {
-                          existingEl = document.getElementById(id);
-                          existingEl.style.animation =
-                            (newNum > oldNum ? 'fadeGreen' : 'fadeRed') +
-                            ' 1.5s';
-                          setTimeout(() => {
-                            existingEl.style.animation = '';
-                          }, 1500);
-                        }, 0);
+                <div class="cells">
+                  ${balanceStatus
+                    .map((v, i) => {
+                      const id = `cells-volt-bal-${i}`;
+                      if (!v) {
+                        delete estimateBalanceCells[i];
                       }
-                    }
+                      let bde;
+                      if (v) {
+                        bde =
+                          estimateBalanceCells[i] ||
+                          new BatteryDischargeEstimator(
+                            cellVolts[i],
+                            cellVolts[indicesOfLow[0]],
+                          );
+                        bde.recordVoltage(cellVolts[i]);
+                        estimateBalanceCells[i] = bde;
+                      }
+                      const remainingBalTime = bde?.estimateRemainingTime();
 
-                    return `
-                  <div class="cell-item" >
-                    <div class="cell-title">${i + 1} </div>
-                    <div class="cells-volt-bal" id="${id}" data-volt="${
-                      cellVolts[i]
-                    }">
-                      ${highVoltageIndex === i ? '🟢' : ''}
-                      ${lowVoltageIndex === i ? '🔴' : ''}
+                      let existingEl = document.getElementById(id);
+                      const text = `${
+                        v
+                          ? `(Bal${
+                              remainingBalTime
+                                ? ' Est ' + remainingBalTime.toFixed(2) + 'h'
+                                : ''
+                            }) `
+                          : ' '
+                      }${cellVolts[i].toFixed(3)}V`;
+
+                      if (existingEl) {
+                        const newNum = cellVolts[i];
+                        const oldNum = parseFloat(
+                          existingEl.getAttribute('data-volt'),
+                        );
+
+                        if (oldNum !== newNum) {
+                          setTimeout(() => {
+                            existingEl = document.getElementById(id);
+                            existingEl.style.animation =
+                              (newNum > oldNum ? 'fadeGreen' : 'fadeRed') +
+                              ' 1.5s';
+                            setTimeout(() => {
+                              existingEl.style.animation = '';
+                            }, 1500);
+                          }, 0);
+                        }
+                      }
+
+                      return `
+                    <div class="cell-item">
+                      <div class="cell-title">Cell ${i + 1} </div>
+                      <div class="cells-volt-bal" id="${id}" data-volt="${
+                        cellVolts[i]
+                      }">
                       ${text}
-                    </div>
-                  </div>
-                `;
-                  })
-                  .join('')}
+                      </div>
+                      <span>
+                        ${(() => {
+                          const off =
+                            '<span style="filter: grayscale(100%);">🔴</span>';
 
+                          const isHigh = indicesOfHigh.includes(i);
+                          const isLow = indicesOfLow.includes(i);
+
+                          if (isHigh) {
+                            return '🟢';
+                          }
+                          if (isLow) {
+                            return '🔴';
+                          }
+                          return off;
+                        })()}
+                          </span>
+
+
+                    </div>
+                  `;
+                    })
+                    .join('')}
+                  </div>
               </div>
             `;
 
@@ -671,7 +737,7 @@
           'remaining-capacity',
           ' Capacity',
           '',
-          info.remainingCapacityAh + 'Ah',
+          info.remainingCapacityAh.toFixed(2) + 'Ah',
         );
 
         createOrUpdateSection(
