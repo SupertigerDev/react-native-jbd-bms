@@ -28,8 +28,8 @@
 
       .content {
         max-width: 1000px;
-        width: 100%;
         margin-left: 10px;
+        flex: 1;
         margin-right: 10px;
       }
 
@@ -73,31 +73,37 @@
 
       #sections {
         display: flex;
-        flex-direction: column;
         gap: 8px;
-        margin-top: 30px;
+        margin-top: 20px;
+        flex-wrap: wrap;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
       }
 
       .section {
         display: flex;
-        background-color: rgba(255, 255, 255, 0.1);
+        flex-direction: column;
         align-items: center;
-        padding-left: 20px;
-        padding-right: 10px;
-        height: 50px;
+        padding: 10px;
+        flex: 1;
+        flex-shrink: 0;
+        justify-content: center;
+        gap: 6px;
         flex-shrink: 0;
 
-        border-radius: 8px;
         .section-title-description {
-          flex: 1;
+          font-weight: bold;
+          text-align: center;
         }
         .section-value {
           flex-shrink: 0;
           font-variant-numeric: tabular-nums;
+          opacity: 0.7;
         }
       }
 
       #cellsSection {
+        margin-top: 10px;
         background-color: rgba(255, 255, 255, 0.1);
         border-radius: 8px;
 
@@ -150,7 +156,7 @@
 
       @keyframes fadeGreen {
         0% {
-          color: green;
+          color: rgb(109, 255, 109);
         }
         100% {
           color: white;
@@ -158,7 +164,7 @@
       }
       @keyframes fadeRed {
         0% {
-          color: red;
+          color: rgb(255, 100, 100);
         }
         100% {
           color: white;
@@ -192,6 +198,7 @@
       </div>
 
       <div id="sections"></div>
+      <div id="cells"></div>
       <div id="charts">
         <div id="voltageChart"></div>
       </div>
@@ -411,8 +418,7 @@
       return indices;
     }
 
-    // const infoUrl = `http://192.168.1.190:12345/info`;
-    const infoUrl = `/info`;
+    const urls = ['/info', 'http://192.168.1.190:12345/info'];
 
     /** @returns {PromiseLike<{
           name: string;
@@ -428,12 +434,15 @@
           balanceStatus: boolean[];
           cellVolts: number[]
         * } | {code: string}>} */
+    let currentUrl = 0;
     async function fetchBatteryInfo() {
       try {
+        const infoUrl = urls[currentUrl];
         const response = await fetch(infoUrl);
         const info = await response.json();
         return info;
       } catch {
+        currentUrl = (currentUrl + 1) % urls.length;
         return null;
       }
     }
@@ -584,7 +593,7 @@
         return;
       }
 
-      const sections = document.getElementById('sections');
+      const sections = document.getElementById('cells');
       sections.innerHTML += element;
     }
 
@@ -597,11 +606,14 @@
           }, 1500);
 
           const header = document.getElementById('header');
-          if (!info || !info.name) {
-            header.innerText = 'Fetching Battery...';
-            return;
+          if (info?.code) {
+            header.innerText = info.code;
+          } else {
+            if (!info || !info.name) {
+              header.innerText = 'Fetching Battery...';
+              return;
+            }
           }
-          header.innerText = info.code;
 
           return;
         }
@@ -657,14 +669,14 @@
 
         createOrUpdateSection(
           'remaining-capacity',
-          'Remaining Capacity',
+          ' Capacity',
           '',
           info.remainingCapacityAh + 'Ah',
         );
 
         createOrUpdateSection(
           't-voltage',
-          'Total Voltage',
+          'Voltage',
           '',
           info.totalVolts + 'V',
         );
@@ -689,14 +701,18 @@
     const ctx = document.getElementById('voltageChart');
     // Specify the configuration items and data for the chart
     const option = () => ({
+      grid: {containLabel: true, top: 80},
       tooltip: {
         trigger: 'axis',
-        position: function (pt) {
-          return [pt[0], '10%'];
-        },
+
+        confine: 'true',
       },
       legend: {
+        textStyle: {
+          color: '#9dffa6',
+        },
         selected: {
+          color: 'red',
           Cap: false,
           Volts: false,
           Curr: false,
@@ -846,28 +862,10 @@
         series: opts.series,
         xAxis: opts.xAxis,
       });
-
-      //   chart.data.labels = plotter.labels;
-      //   chart.data.datasets[0].data = plotter.data.capacity;
-      //   chart.data.datasets[1].data = plotter.data.voltage;
-      //   chart.data.datasets[2].data = plotter.data.current;
-      //   chart.data.datasets[3].data = plotter.data.cellDiff;
-      //   plotter.data.cells.forEach((v, i) => {
-      //     if (!chart.data.datasets[i + 4]) {
-      //       chart.data.datasets[i + 4] = {
-      //         hidden: true,
-      //         label: `Cell ${i + 1}`,
-      //         data: [],
-      //         fill: false,
-      //         pointBorderColor: 'rgba(0, 0, 0, 0)',
-      //         pointBackgroundColor: 'rgba(0, 0, 0, 0)',
-      //         pointHoverBorderColor: 'rgb(75, 192, 192)',
-      //         tension: 0.1,
-      //       };
-      //     }
-      //     chart.data.datasets[i + 4].data = v;
-      //   });
-      //   chart.update();
     };
+
+    window.addEventListener('resize', () => {
+      myChart.resize();
+    });
   </script>
 </html>
