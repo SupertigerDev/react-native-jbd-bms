@@ -22,10 +22,13 @@
       }
       header {
         font-size: 28px;
-        margin-top: 30px;
         margin-bottom: 20px;
       }
 
+      #lastUpdatedAt {
+        margin-top: 30px;
+        opacity: 0.6;
+      }
       .content {
         max-width: 1000px;
         margin-left: 10px;
@@ -36,6 +39,7 @@
       #batteryPercent {
         font-size: 40px;
         font-variant-numeric: tabular-nums;
+        font-weight: bold;
       }
       .battery-container {
         display: flex;
@@ -200,6 +204,7 @@
   </head>
   <body>
     <div class="content">
+      <div id="lastUpdatedAt"></div>
       <header id="header">Fetching Battery...</header>
 
       <div>
@@ -577,7 +582,6 @@
                         const oldNum = parseFloat(
                           existingEl.getAttribute('data-value'),
                         );
-                        console.log(newNum, oldNum);
                         if (oldNum !== newNum) {
                           setTimeout(() => {
                             let existingEl = document.getElementById(el.id);
@@ -717,6 +721,15 @@
 
           return;
         }
+
+        document.getElementById('lastUpdatedAt').innerText =
+          'Last  Updated At: ' +
+          Intl.DateTimeFormat('en-US', {
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric',
+            hour12: false,
+          }).format(new Date());
 
         const indicesOfHigh = getIndicesOfLargestNumbers(info.cellVolts);
         const indicesOfLow = getIndicesOfSmallestNumbers(info.cellVolts);
