@@ -609,32 +609,24 @@
                   ${balanceStatus
                     .map((v, i) => {
                       const id = `cells-volt-bal-${i}`;
-                      if (!v) {
-                        delete estimateBalanceCells[i];
-                      }
-                      let bde;
-                      if (v) {
-                        bde =
-                          estimateBalanceCells[i] ||
-                          new BatteryDischargeEstimator(
-                            cellVolts[i],
-                            cellVolts[indicesOfLow[0]],
-                          );
-                        bde.recordVoltage(cellVolts[i]);
-                        estimateBalanceCells[i] = bde;
-                      }
-                      const remainingBalTime = bde?.estimateRemainingTime();
+                      // if (!v) {
+                      //   delete estimateBalanceCells[i];
+                      // }
+                      // let bde;
+                      // if (v) {
+                      //   bde =
+                      //     estimateBalanceCells[i] ||
+                      //     new BatteryDischargeEstimator(
+                      //       cellVolts[i],
+                      //       cellVolts[indicesOfLow[0]],
+                      //     );
+                      //   bde.recordVoltage(cellVolts[i]);
+                      //   estimateBalanceCells[i] = bde;
+                      // }
+                      // const remainingBalTime = bde?.estimateRemainingTime();
 
                       let existingEl = document.getElementById(id);
-                      const text = `${
-                        v
-                          ? `(Bal${
-                              remainingBalTime
-                                ? ' Est ' + remainingBalTime.toFixed(2) + 'h'
-                                : ''
-                            }) `
-                          : ' '
-                      }${cellVolts[i].toFixed(3)}V`;
+                      const text = `${cellVolts[i].toFixed(3)}V`;
 
                       if (existingEl) {
                         const newNum = cellVolts[i];
@@ -681,6 +673,9 @@
 
                           return off;
                         })()}
+                      <span title="Balance Status" style="${
+                        !v ? 'filter: grayscale(100%);' : ''
+                      }">⚖️</span>
                           </span>
 
 
