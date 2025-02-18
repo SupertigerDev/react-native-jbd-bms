@@ -416,6 +416,37 @@
 
       return indices;
     }
+    function getIndicesOfNextLargestNumbers(arr) {
+      if (!arr || arr.length === 0) {
+        return [];
+      }
+
+      const largestIndices = getIndicesOfLargestNumbers(arr);
+      const largestNumber = arr[largestIndices[0]]; // Get the actual largest number
+
+      const nextLargestIndices = [];
+      let nextLargestNumber = -Infinity; // Initialize to negative infinity
+
+      for (let i = 0; i < arr.length; i++) {
+        if (
+          i !== largestIndices[0] &&
+          arr[i] > nextLargestNumber &&
+          !largestIndices.includes(i)
+        ) {
+          nextLargestNumber = arr[i];
+          nextLargestIndices.length = 0; // Clear the indices array
+          nextLargestIndices.push(i);
+        } else if (
+          i !== largestIndices[0] &&
+          arr[i] === nextLargestNumber &&
+          !largestIndices.includes(i)
+        ) {
+          nextLargestIndices.push(i);
+        }
+      }
+
+      return nextLargestIndices;
+    }
     function getIndicesOfSmallestNumbers(arr) {
       if (!arr || arr.length === 0) {
         return []; // Handle empty or null array
@@ -512,6 +543,7 @@
 
       const indicesOfHigh = getIndicesOfLargestNumbers(cellVolts);
       const indicesOfLow = getIndicesOfSmallestNumbers(cellVolts);
+      const indicesOfNextHigh = getIndicesOfNextLargestNumbers(cellVolts);
       let highVoltageIndex = indicesOfHigh.length === 1 ? indicesOfHigh[0] : -1;
       let lowVoltageIndex = indicesOfLow.length === 1 ? indicesOfLow[0] : -1;
 
@@ -634,13 +666,15 @@
 
                           const isHigh = indicesOfHigh.includes(i);
                           const isLow = indicesOfLow.includes(i);
+                          const isNextHigh = indicesOfNextHigh.includes(i);
 
+                          if (isNextHigh) {
+                            return '🔵';
+                          }
                           if (isHigh) {
                             return '🟢';
                           }
-                          if (isLow) {
-                            return '🔴';
-                          }
+
                           return off;
                         })()}
                           </span>
