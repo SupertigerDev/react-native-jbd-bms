@@ -541,6 +541,8 @@
       sections.innerHTML += element;
     };
 
+    let cellStartValues = [];
+
     const estimateBalanceCells = [];
     function createCellsSection(balanceStatus, cellVolts) {
       if (!balanceStatus || !cellVolts) return;
@@ -568,6 +570,15 @@
         {id: 'cell-diff', name: 'Diff', value: voltageDiff},
         {id: 'cell-avg', name: 'Avg', value: averageVoltage.toFixed(3)},
       ];
+
+      if (!cellStartValues.length) {
+        cellStartValues = cellVolts;
+      }
+
+      const cellDiffs = cellStartValues.map((v, i) => {
+        const diff = cellVolts[i] - v;
+        return diff.toFixed(3);
+      });
 
       const element = `
               <div id="cellsSection">
@@ -671,14 +682,19 @@
                             return '🟢';
                           }
 
-                          return off;
+                          if (isLow) {
+                            return off;
+                          }
+
+                          return '🔵';
                         })()}
-                      <span title="Balance Status" style="${
-                        !v ? 'filter: grayscale(100%);' : ''
-                      }">⚖️</span>
+                          <span title="Balance Status" style="${
+                            !v ? 'filter: grayscale(100%); opacity: 0.4' : ''
+                          }">⚖️</span>
                           </span>
-
-
+                          <span title="Changes" style="opacity: 0.5">${
+                            cellDiffs[i] > 0 ? '+' : ''
+                          }${cellDiffs[i]}</span>
                     </div>
                   `;
                     })
