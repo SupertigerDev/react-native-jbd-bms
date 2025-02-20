@@ -3,6 +3,28 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
 
+    <!--
+      HACK: this permission should not be needed on android 12+ devices anymore,
+      but in fact some manufacturers still need it for BLE to properly work :
+      https://stackoverflow.com/a/72370969
+    -->
+    <uses-permission android:name="android.permission.BLUETOOTH" tools:remove="android:maxSdkVersion" />
+    <!--
+      should normally only be needed on android < 12 if you want to:
+      - activate bluetooth programmatically
+      - discover local BLE devices
+      see: https://developer.android.com/guide/topics/connectivity/bluetooth/permissions#discover-local-devices.
+      Same as above, may still be wrongly needed by some manufacturers on android 12+.
+     -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" tools:remove="android:maxSdkVersion" />
+
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="28"/>
+    <uses-permission-sdk-23 android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30"/>
+
+
+
+
+
     <!-- Needed if your app search for Bluetooth devices. -->
      <!--
       If your app doesn't use Bluetooth scan results to derive physical location information,
