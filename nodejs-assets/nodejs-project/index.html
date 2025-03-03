@@ -501,12 +501,26 @@
       }
     }
 
-    const createOrUpdateSection = (id, title, description, value) => {
+    const initialValues = {};
+
+    const createOrUpdateSection = (id, title, description, value, rawValue) => {
+      let initVal = initialValues[id];
+      if (initVal === undefined) {
+        initialValues[id] = rawValue;
+        initVal = rawValue;
+      }
+
+      const diff = rawValue - initVal;
+
       const exists = document.getElementById(`section-${id}`);
       if (exists) {
         document.getElementById(`section-title-${id}`).innerText = title;
         document.getElementById(`section-description-${id}`).innerText =
           description;
+
+        document.getElementById(`section-init-value-${id}`).innerText = `${
+          diff > 0 ? '+' : ''
+        }${diff.toFixed(2)}`;
 
         const oldNums = parseFloat(
           document
@@ -528,12 +542,15 @@
       }
 
       const element = `
-            <div class="section" id="section-${id}">
+            <div class="section" id="section-${id}" >
               <div class="section-title-description">
                 <div id="section-title-${id}">${title}</div>
                 <div id="section-description-${id}">${description}</div>
                 </div>
               <div class="section-value" id="section-value-${id}">${value}</div>
+              <div class="section-value" style="opacity: 0.5;" id="section-init-value-${id}">${
+        diff > 0 ? '+' : ''
+      }${diff.toFixed(2)}</div>
             </div>
           `;
 
@@ -796,6 +813,7 @@
           ' Capacity',
           '',
           info.remainingCapacityAh.toFixed(2) + 'Ah',
+          info.remainingCapacityAh,
         );
 
         createOrUpdateSection(
@@ -803,14 +821,22 @@
           'Voltage',
           '',
           info.totalVolts + 'V',
+          info.totalVolts,
         );
-        createOrUpdateSection('current', 'Current', '', info.current + 'A');
+        createOrUpdateSection(
+          'current',
+          'Current',
+          '',
+          info.current + 'A',
+          info.current,
+        );
         const watts = info.current * info.totalVolts;
         createOrUpdateSection(
           'power',
           'Power',
           '',
           `${watts === 0 ? 0 : watts.toFixed(2)}W`,
+          watts,
         );
 
         createCellsSection(info.balanceStatus, info.cellVolts);
