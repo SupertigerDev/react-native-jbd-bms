@@ -200,6 +200,19 @@
         width: 100%;
         height: 500px;
       }
+      .reset-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 16px;
+      }
+      .reset-buttons button {
+        padding: 6px;
+        background-color: rgb(58, 58, 58);
+        color: white;
+        border-radius: 6px;
+        border: none;
+      }
     </style>
   </head>
   <body>
@@ -220,6 +233,10 @@
         </div>
       </div>
 
+      <div class="reset-buttons">
+        <button id="resetOffset">Reset Diffs</button>
+        <button id="resetGraph">Reset Graph</button>
+      </div>
       <div id="sections"></div>
       <div id="cells"></div>
       <div id="charts">
@@ -398,9 +415,35 @@
           }),
         );
       }
+      resetValues = () => {
+        this.labels = [];
+        this.data = {
+          capacity: [],
+          voltage: [],
+          current: [],
+          cellDiff: [],
+          cells: [],
+        };
+        this.lastPlottedAt = -1;
+        this.onAdd();
+        this.saveToStorage();
+      };
     }
 
     const plotter = new Plotter();
+    const [initialValues, setInitialValues] = cachedValue("initialValues", {});
+    const [cellStartValues, setCellStartValues] = cachedValue('cellStartValues', []);
+
+    const resetGraphBtn = document.getElementById('resetGraph');
+    resetGraphBtn.addEventListener('click', () => {
+      plotter.resetValues();
+    })
+    const resetOffsetBtn = document.getElementById('resetOffset');
+    resetOffsetBtn.addEventListener('click', () => {
+      setCellStartValues([]);
+      setInitialValues({});
+    })
+
 
     function getIndicesOfLargestNumbers(arr) {
       if (!arr || arr.length === 0) {
@@ -501,12 +544,13 @@
       }
     }
 
-    const initialValues = {};
+
+
 
     const createOrUpdateSection = (id, title, description, value, rawValue) => {
-      let initVal = initialValues[id];
+      let initVal = initialValues()[id];
       if (initVal === undefined) {
-        initialValues[id] = rawValue;
+        setInitialValues({...initialValues(), [id]: rawValue});
         initVal = rawValue;
       }
 
@@ -558,7 +602,6 @@
       sections.innerHTML += element;
     };
 
-    let cellStartValues = [];
 
     const estimateBalanceCells = [];
     function createCellsSection(balanceStatus, cellVolts) {
@@ -588,11 +631,11 @@
         {id: 'cell-avg', name: 'Avg', value: averageVoltage.toFixed(3)},
       ];
 
-      if (!cellStartValues.length) {
-        cellStartValues = cellVolts;
+      if (!cellStartValues().length) {
+        setCellStartValues(cellVolts);
       }
 
-      const cellDiffs = cellStartValues.map((v, i) => {
+      const cellDiffs = cellStartValues().map((v, i) => {
         const diff = cellVolts[i] - v;
         return diff.toFixed(3);
       });
@@ -1019,5 +1062,20 @@
     window.addEventListener('resize', () => {
       myChart?.resize();
     });
+
+    function cachedValue(key, initialValue) {
+      let value = JSON.parse(localStorage.getItem(key) || JSON.stringify(initialValue));
+
+      const set = (val) => {
+        value = val;
+        localStorage.setItem(key, JSON.stringify(val));
+      };
+      const get = () => value;
+
+      if (value === null) {
+        set(initialValue);
+      }
+      return [get, set];
+    }
   </script>
 </html>
