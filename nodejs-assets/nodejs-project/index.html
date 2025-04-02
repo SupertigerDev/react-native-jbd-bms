@@ -738,6 +738,7 @@
           }, 1500);
 
           const header = document.getElementById('header');
+          header.style.color = "red"
           if (info?.code) {
             header.innerText = info.code;
           } else {
@@ -800,6 +801,7 @@
 
         const header = document.getElementById('header');
         header.innerText = `${info.name}`;
+        header.style.color = "white"
 
         const batteryPercentText = `${info.remainingPercentSoc}%`;
         const batteryPercent = document.getElementById('batteryPercent');
