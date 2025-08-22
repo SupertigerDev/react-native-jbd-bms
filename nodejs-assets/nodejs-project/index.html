@@ -772,6 +772,17 @@
       sections.innerHTML += element;
     }
 
+
+    export function convertSecondsToHHMM(totalSeconds) {
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+      // You can customize the format here
+      return `${hours}h ${minutes}m`;
+    }
+
+
+
     monitorStarted = false;
     function fetchSchedule() {
       fetchBatteryInfo().then(info => {
@@ -820,24 +831,24 @@
           voltage: info.totalVolts,
         });
 
-        // use current capacity, current and nominal capacity to calculate remaining
-        let secondsRemaining =
-          (info.remainingCapacityAh / Math.abs(info.current)) * 3600;
+        const charging = current > 0;
+        const discharging = current < 0;
 
-        const charging = info.current > 0;
-        const discharging = info.current < 0;
+        let secondsRemaining;
+
         if (charging) {
           secondsRemaining =
-            ((info.nominalCapacityAh - info.remainingCapacityAh) /
-              Math.abs(info.current)) *
-            3600;
+            ((nominalCapacityAh - remainingCapacityAh) / Math.abs(current)) * 3600;
+        } else if (discharging) {
+          secondsRemaining = (remainingCapacityAh / Math.abs(current)) * 3600;
         }
+        const HHMMRemaining = convertSecondsToHHMM(secondsRemaining);
 
         let estTitle = '';
         if (charging || discharging) {
-          estTitle = `Estimated ${
+          estTitle = `Est ${
             charging ? 'Charging' : 'Discharging'
-          }: ${new Date(secondsRemaining * 1000).toISOString().slice(11, 19)}`;
+          }: ${HHMMRemaining}`;
         }
         const estTime = document.getElementById('estimateTime');
         estTime.innerText = !charging && !discharging ? '' : estTitle;
