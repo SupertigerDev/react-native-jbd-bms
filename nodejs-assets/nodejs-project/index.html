@@ -773,7 +773,7 @@
     }
 
 
-    export function convertSecondsToHHMM(totalSeconds) {
+    function convertSecondsToHHMM(totalSeconds) {
       const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
 
@@ -830,9 +830,12 @@
           cellVolts: info.cellVolts,
           voltage: info.totalVolts,
         });
+        const remainingCapacityAh = info.remainingCapacityAh;
+        const current = info.current;
 
         const charging = current > 0;
         const discharging = current < 0;
+        const nominalCapacityAh = info.nominalCapacityAh;
 
         let secondsRemaining;
 
