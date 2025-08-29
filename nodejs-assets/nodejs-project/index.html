@@ -354,38 +354,41 @@
           // only plot after 60 seconds
           if (Date.now() - this.lastPlottedAt < 60 * 1000) return;
 
-          // check how long it has been since the last plot
-          const lastPlotDuration = Date.now() - this.lastPlottedAt;
-          // add nulls to array if it has been more than 60 seconds since the last plot. plot every 60 seconds
-          if (this.lastPlottedAt !== -1 && lastPlotDuration > 61 * 1000) {
-            for (let i = 0; i < lastPlotDuration / 70 / 1000 - 1; i++) {
-              const date = new Date(this.lastPlottedAt + 60 * 1000 * (i + 1));
-              this.labels.push(
-                Intl.DateTimeFormat('en', {
-                  timeStyle: 'short',
-                  hour12: false,
-                }).format(date),
-              );
-              this.data.capacity.push(null);
-              this.data.current.push(null);
+          // // check how long it has been since the last plot
+          // const lastPlotDuration = Date.now() - this.lastPlottedAt;
+          // // add nulls to array if it has been more than 60 seconds since the last plot. plot every 60 seconds
+          // if (this.lastPlottedAt !== -1 && lastPlotDuration > 61 * 1000) {
+          //   for (let i = 0; i < lastPlotDuration / 70 / 1000 - 1; i++) {
+          //     const date = new Date(this.lastPlottedAt + 60 * 1000 * (i + 1));
+          //     this.labels.push(
+          //       Intl.DateTimeFormat('en', {
+          //         timeStyle: 'short',
+          //         hour12: false,
+          //       }).format(date),
+          //     );
+          //     this.data.capacity.push(null);
+          //     this.data.current.push(null);
 
-              this.data.voltage.push(null);
-              this.data.cellDiff.push(null);
+          //     this.data.voltage.push(null);
+          //     this.data.cellDiff.push(null);
 
-              this.data.cells.forEach(cell => {
-                cell.push(null);
-              });
-            }
-          }
+          //     this.data.cells.forEach(cell => {
+          //       cell.push(null);
+          //     });
+          //   }
+          // }
 
           this.lastPlottedAt = Date.now();
         }
 
         const date = new Date();
         this.labels.push(
-          Intl.DateTimeFormat('en', {timeStyle: 'short', hour12: false}).format(
-            date,
-          ),
+          date.getDate() +
+            ' ' +
+            Intl.DateTimeFormat('en', {
+              timeStyle: 'short',
+              hour12: false,
+            }).format(date),
         );
 
         this.data.capacity.push(value.capacity);
@@ -431,19 +434,21 @@
     }
 
     const plotter = new Plotter();
-    const [initialValues, setInitialValues] = cachedValue("initialValues", {});
-    const [cellStartValues, setCellStartValues] = cachedValue('cellStartValues', []);
+    const [initialValues, setInitialValues] = cachedValue('initialValues', {});
+    const [cellStartValues, setCellStartValues] = cachedValue(
+      'cellStartValues',
+      [],
+    );
 
     const resetGraphBtn = document.getElementById('resetGraph');
     resetGraphBtn.addEventListener('click', () => {
       plotter.resetValues();
-    })
+    });
     const resetOffsetBtn = document.getElementById('resetOffset');
     resetOffsetBtn.addEventListener('click', () => {
       setCellStartValues([]);
       setInitialValues({});
-    })
-
+    });
 
     function getIndicesOfLargestNumbers(arr) {
       if (!arr || arr.length === 0) {
@@ -544,9 +549,6 @@
       }
     }
 
-
-
-
     const createOrUpdateSection = (id, title, description, value, rawValue) => {
       let initVal = initialValues()[id];
       if (initVal === undefined) {
@@ -601,7 +603,6 @@
       const sections = document.getElementById('sections');
       sections.innerHTML += element;
     };
-
 
     const estimateBalanceCells = [];
     function createCellsSection(balanceStatus, cellVolts) {
@@ -772,7 +773,6 @@
       sections.innerHTML += element;
     }
 
-
     function convertSecondsToHHMM(totalSeconds) {
       const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -780,8 +780,6 @@
       // You can customize the format here
       return `${hours}h ${minutes}m`;
     }
-
-
 
     monitorStarted = false;
     function fetchSchedule() {
@@ -792,7 +790,7 @@
           }, 1500);
 
           const header = document.getElementById('header');
-          header.style.color = "red"
+          header.style.color = 'red';
           if (info?.code) {
             header.innerText = info.code;
           } else {
@@ -841,7 +839,8 @@
 
         if (charging) {
           secondsRemaining =
-            ((nominalCapacityAh - remainingCapacityAh) / Math.abs(current)) * 3600;
+            ((nominalCapacityAh - remainingCapacityAh) / Math.abs(current)) *
+            3600;
         } else if (discharging) {
           secondsRemaining = (remainingCapacityAh / Math.abs(current)) * 3600;
         }
@@ -849,16 +848,16 @@
 
         let estTitle = '';
         if (charging || discharging) {
-          estTitle = `Est ${
-            charging ? 'Charging' : 'Discharging'
-          }: ${HHMMRemaining}`;
+          estTitle = `${
+            charging ? 'Charged in' : 'Discharging in'
+          } ${HHMMRemaining}`;
         }
         const estTime = document.getElementById('estimateTime');
         estTime.innerText = !charging && !discharging ? '' : estTitle;
 
         const header = document.getElementById('header');
         header.innerText = `${info.name}`;
-        header.style.color = "white"
+        header.style.color = 'white';
 
         const batteryPercentText = `${info.remainingPercentSoc}%`;
         const batteryPercent = document.getElementById('batteryPercent');
@@ -902,7 +901,7 @@
 
         setTimeout(() => {
           fetchSchedule();
-        }, 1500);
+        }, 1000);
       });
     }
     fetchSchedule();
@@ -1078,9 +1077,11 @@
     });
 
     function cachedValue(key, initialValue) {
-      let value = JSON.parse(localStorage.getItem(key) || JSON.stringify(initialValue));
+      let value = JSON.parse(
+        localStorage.getItem(key) || JSON.stringify(initialValue),
+      );
 
-      const set = (val) => {
+      const set = val => {
         value = val;
         localStorage.setItem(key, JSON.stringify(val));
       };

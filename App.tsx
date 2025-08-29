@@ -5,8 +5,16 @@ import {bms, BMSProvider, useBMS} from './src/BMSContext';
 import nodejs from 'nodejs-mobile-react-native';
 import WebView from 'react-native-webview';
 import {NetworkInfo} from 'react-native-network-info';
+import {createRequestDeduplicator} from './src/createRequestDeduplicator';
 
 nodejs.start('main.js');
+
+const {request} = createRequestDeduplicator(async () => {
+  // console.log('request', new Date().toUTCString());
+  const info = await bms.fetchBatteryInfo();
+  const cellVolts = await bms.fetchCellVoltages();
+  return {info, cellVolts};
+});
 
 const sendResponse = (id: number, json: any, code = 200) => {
   nodejs.channel.send(
@@ -25,8 +33,7 @@ nodejs.channel.addListener('message', async msg => {
       sendResponse(json.id, {code: 'DEVICE_NOT_SELECTED'}, 400);
       return;
     }
-    const info = await bms.fetchBatteryInfo();
-    const cellVolts = await bms.fetchCellVoltages();
+    const {info, cellVolts} = await request();
     sendResponse(json.id, {...info, cellVolts});
   }
 });
@@ -62,7 +69,7 @@ const PageHandler = () => {
             Hosting on {localIp}:12345
           </Text>
           <WebView
-          clear
+            clear
             bounces={false}
             style={{backgroundColor: 'black', width: '100%', height: '100%'}}
             overScrollMode="never"

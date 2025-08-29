@@ -67,6 +67,7 @@ interface BatteryInfo {
   mosfetCharge: boolean;
   mosfetDischarge: boolean;
   balanceStatus: boolean[];
+  temperatures: number[];
 }
 export class BMS {
   selectedPeripheral: Peripheral | undefined;
@@ -126,187 +127,186 @@ export class BMS {
     // }, 1000);
   }
 
-  fetchQueue = new Queue();
   // https://github.com/neilsheps/overkill-xiaoxiang-jbd-bms-ble-reader/blob/main/src/main.cpp
   // https://socket.dev/npm/package/jbd-overkill-bms-plugin/files/0.0.6/index.js
   async fetchBatteryInfo() {
-    return this.fetchQueue.enqueue(async () => {
-      if (!this.selectedPeripheral) {
-        return null;
-      }
-      return await new Promise<BatteryInfo | null>(async resolve => {
-        setTimeout(() => {
-          resolve(null);
-        }, 2000);
-        const bmsDataReceived: number[] = [];
-        let bmsDataLengthReceived = 0;
+    if (!this.selectedPeripheral) {
+      return null;
+    }
+    return await new Promise<BatteryInfo | null>(async resolve => {
+      setTimeout(() => {
+        resolve(null);
+      }, 2000);
+      const bmsDataReceived: number[] = [];
+      let bmsDataLengthReceived = 0;
 
-        const appendPacket = (data: number[], dataLength: number) => {
-          // for (int i = 0; i < dataLen; i++) { bmsDataReceived[bmsDataLengthReceived++] = data[i]; }
-          for (let i = 0; i < dataLength; i++) {
-            bmsDataReceived[bmsDataLengthReceived++] = data[i];
-          }
+      const appendPacket = (data: number[], dataLength: number) => {
+        // for (int i = 0; i < dataLen; i++) { bmsDataReceived[bmsDataLengthReceived++] = data[i]; }
+        for (let i = 0; i < dataLength; i++) {
+          bmsDataReceived[bmsDataLengthReceived++] = data[i];
+        }
 
-          if (bmsDataLengthReceived === bmsDataLengthExpected + 7) {
-            const data = bmsDataReceived;
-            if (data[1] === 0x03) {
-              const totalVolts = (data[4] * 256 + data[5]) / 100;
+        if (bmsDataLengthReceived === bmsDataLengthExpected + 7) {
+          const data = bmsDataReceived;
+          if (data[1] === 0x03) {
+            const totalVolts = (data[4] * 256 + data[5]) / 100;
 
-              // const current = (data[6] * 256 + data[7]) / 100;
-              const current = Number(
-                bytesToFloat(data[6], data[7], 0.01, true),
-              );
+            // const current = (data[6] * 256 + data[7]) / 100;
+            const current = Number(bytesToFloat(data[6], data[7], 0.01, true));
 
-              const remainingCapacityAh = (data[8] * 256 + data[9]) / 100;
+            const remainingCapacityAh = (data[8] * 256 + data[9]) / 100;
 
-              const nominalCapacityAh = (data[10] * 256 + data[11]) / 100;
+            const nominalCapacityAh = (data[10] * 256 + data[11]) / 100;
 
-              const totalCycles = data[12] * 256 + data[13];
+            const totalCycles = data[12] * 256 + data[13];
 
-              const remainingPercentSoc = data[23];
+            const remainingPercentSoc = data[23];
 
-              const bmsNumberOfCells = data[25];
+            const bmsNumberOfCells = data[25];
 
-              const mosfetCharge = (data[24] & 0x01) === 1 ? true : false;
-              const mosfetDischarge = (data[24] & 0x02) === 2 ? true : false;
+            const mosfetCharge = (data[24] & 0x01) === 1 ? true : false;
+            const mosfetDischarge = (data[24] & 0x02) === 2 ? true : false;
 
-              const balanceStatus = getBalanceStatus(
-                data[16],
-                data[17],
-                bmsNumberOfCells,
-              );
+            const balanceStatus = getBalanceStatus(
+              data[16],
+              data[17],
+              bmsNumberOfCells,
+            );
 
-              console.log(data);
-
-              resolve({
-                name: this.selectedPeripheral?.name!,
-                totalVolts,
-                remainingCapacityAh,
-                current,
-                remainingPercentSoc,
-                nominalCapacityAh,
-                totalCycles,
-                bmsNumberOfCells,
-                mosfetCharge,
-                mosfetDischarge,
-                balanceStatus,
-              });
+            const numberOfTemperatureSensors = data[26];
+            const temperatures = [];
+            for (let i = 0; i < numberOfTemperatureSensors; i++) {
+              const temperature =
+                (data[27 + i * 2] * 256 + data[28 + i * 2] - 2731) / 10;
+              temperatures.push(temperature);
             }
+
+            resolve({
+              name: this.selectedPeripheral?.name!,
+              totalVolts,
+              remainingCapacityAh,
+              current,
+              remainingPercentSoc,
+              nominalCapacityAh,
+              totalCycles,
+              bmsNumberOfCells,
+              mosfetCharge,
+              mosfetDischarge,
+              balanceStatus,
+              temperatures,
+            });
           }
-        };
+        }
+      };
 
-        let bmsDataLengthExpected = 0;
+      let bmsDataLengthExpected = 0;
 
-        console.log('Fetching battery info');
+      // console.log('Fetching battery info');
 
-        const listener = BLEManager.onDidUpdateValueForCharacteristic(
-          (event: BleManagerDidUpdateValueForCharacteristicEvent) => {
-            const data = event.value;
-            if (bmsDataLengthReceived === 0) {
-              bmsDataLengthExpected = data[3];
-              if (data[0] !== 0xdd) {
-                console.log('Invalid response');
-                listener.remove();
-                resolve(null);
-                return;
-              }
-              appendPacket(data, data.length);
-            } else {
-              appendPacket(data, data.length);
+      const listener = BLEManager.onDidUpdateValueForCharacteristic(
+        (event: BleManagerDidUpdateValueForCharacteristicEvent) => {
+          const data = event.value;
+          if (bmsDataLengthReceived === 0) {
+            bmsDataLengthExpected = data[3];
+            if (data[0] !== 0xdd) {
+              console.log('Invalid response');
+              listener.remove();
+              resolve(null);
+              return;
             }
-          },
-        );
-        const data = [0xdd, 0xa5, 0x3, 0x0, 0xff, 0xfd, 0x77];
+            appendPacket(data, data.length);
+          } else {
+            appendPacket(data, data.length);
+          }
+        },
+      );
+      const data = [0xdd, 0xa5, 0x3, 0x0, 0xff, 0xfd, 0x77];
 
-        await BLEManager.write(
-          this.selectedPeripheral!.id,
-          '0000ff00-0000-1000-8000-00805f9b34fb',
-          bmsTx,
-          data,
-        )
-          .then(() => {
-            console.log('written');
-          })
-          .catch(error => {
-            // Failure code
-            console.log(error);
-          });
-      });
+      await BLEManager.write(
+        this.selectedPeripheral!.id,
+        '0000ff00-0000-1000-8000-00805f9b34fb',
+        bmsTx,
+        data,
+      )
+        .then(() => {
+          // console.log('written');
+        })
+        .catch(error => {
+          // Failure code
+          console.log(error);
+        });
     });
   }
   async fetchCellVoltages() {
-    return this.fetchQueue.enqueue(async () => {
-      if (!this.selectedPeripheral) {
-        return null;
-      }
-      return await new Promise<number[] | null>(async resolve => {
-        setTimeout(() => {
-          resolve(null);
-        }, 2000);
-        const bmsDataReceived: number[] = [];
-        let bmsDataLengthReceived = 0;
+    if (!this.selectedPeripheral) {
+      return null;
+    }
+    return await new Promise<number[] | null>(async resolve => {
+      setTimeout(() => {
+        resolve(null);
+      }, 2000);
+      const bmsDataReceived: number[] = [];
+      let bmsDataLengthReceived = 0;
 
-        const appendPacket = (data: number[], dataLength: number) => {
-          // for (int i = 0; i < dataLen; i++) { bmsDataReceived[bmsDataLengthReceived++] = data[i]; }
-          for (let i = 0; i < dataLength; i++) {
-            bmsDataReceived[bmsDataLengthReceived++] = data[i];
-          }
+      const appendPacket = (data: number[], dataLength: number) => {
+        // for (int i = 0; i < dataLen; i++) { bmsDataReceived[bmsDataLengthReceived++] = data[i]; }
+        for (let i = 0; i < dataLength; i++) {
+          bmsDataReceived[bmsDataLengthReceived++] = data[i];
+        }
 
-          if (bmsDataLengthReceived === bmsDataLengthExpected + 7) {
-            const data = bmsDataReceived;
-            if (data[1] === 0x04) {
-              const cellVolts: number[] = [];
-              const bmsNumberOfCells = data[3] / 2;
-              for (let i = 0; i < bmsNumberOfCells; i++) {
-                const millivolts = data[4 + 2 * i] * 256 + data[5 + 2 * i];
-                const volts = millivolts / 1000;
-                cellVolts.push(volts);
-              }
-              console.log(data);
-
-              resolve(cellVolts);
+        if (bmsDataLengthReceived === bmsDataLengthExpected + 7) {
+          const data = bmsDataReceived;
+          if (data[1] === 0x04) {
+            const cellVolts: number[] = [];
+            const bmsNumberOfCells = data[3] / 2;
+            for (let i = 0; i < bmsNumberOfCells; i++) {
+              const millivolts = data[4 + 2 * i] * 256 + data[5 + 2 * i];
+              const volts = millivolts / 1000;
+              cellVolts.push(volts);
             }
+
+            resolve(cellVolts);
           }
-        };
+        }
+      };
 
-        let bmsDataLengthExpected = 0;
+      let bmsDataLengthExpected = 0;
 
-        console.log('Fetching battery info');
+      // console.log('Fetching battery info');
 
-        const listener = BLEManager.onDidUpdateValueForCharacteristic(
-          (event: BleManagerDidUpdateValueForCharacteristicEvent) => {
-            const data = event.value;
-            if (bmsDataLengthReceived === 0) {
-              bmsDataLengthExpected = data[3];
-              if (data[0] !== 0xdd) {
-                console.log('Invalid response');
-                listener.remove();
-                resolve(null);
-                return;
-              }
-              appendPacket(data, data.length);
-            } else {
-              appendPacket(data, data.length);
+      const listener = BLEManager.onDidUpdateValueForCharacteristic(
+        (event: BleManagerDidUpdateValueForCharacteristicEvent) => {
+          const data = event.value;
+          if (bmsDataLengthReceived === 0) {
+            bmsDataLengthExpected = data[3];
+            if (data[0] !== 0xdd) {
+              console.log('Invalid response');
+              listener.remove();
+              resolve(null);
+              return;
             }
-          },
-        );
+            appendPacket(data, data.length);
+          } else {
+            appendPacket(data, data.length);
+          }
+        },
+      );
 
-        const data = [0xdd, 0xa5, 0x4, 0x0, 0xff, 0xfc, 0x77];
+      const data = [0xdd, 0xa5, 0x4, 0x0, 0xff, 0xfc, 0x77];
 
-        await BLEManager.write(
-          this.selectedPeripheral!.id,
-          '0000ff00-0000-1000-8000-00805f9b34fb',
-          bmsTx,
-          data,
-        )
-          .then(() => {
-            console.log('written');
-          })
-          .catch(error => {
-            // Failure code
-            console.log(error);
-          });
-      });
+      await BLEManager.write(
+        this.selectedPeripheral!.id,
+        '0000ff00-0000-1000-8000-00805f9b34fb',
+        bmsTx,
+        data,
+      )
+        .then(() => {
+          // console.log('written');
+        })
+        .catch(error => {
+          // Failure code
+          console.log(error);
+        });
     });
   }
 }
